@@ -1,0 +1,78 @@
+name: Build and deploy Berserk Web
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "site/**"
+      - ".github/workflows/deploy.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: berserk-web-pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout website
+        uses: actions/checkout@v4
+
+      - name: Install Rust nightly and WASM target
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Install build tools
+        run: sudo apt-get update && sudo apt-get install -y clang curl
+
+      - name: Checkout Berserk engine source
+        run: git clone --depth 1 https://github.com/official-knightly/Berserk.git engine-source
+
+      - name: Download and verify the Berserk NNUE network
+        shell: bash
+        run: |
+          mkdir -p engine-source/networks
+          curl --fail --location --retry 3 --retry-all-errors \
+            https://github.com/codedeliveryservice/RecklessNetworks/releases/download/networks/v60-7f587dfb.nnue \
+            --output engine-source/networks/v60-7f587dfb.nnue
+          echo "7f587dfb1fe5d74d53909328afa6fd51650c8c7f45907602db7fbb1e52948c61  engine-source/networks/v60-7f587dfb.nnue" | sha256sum --check -
+
+      - name: Install matching wasm-bindgen CLI
+        run: cargo install wasm-bindgen-cli --version 0.2.129 --locked
+
+      - name: Compile Berserk for WebAssembly
+        working-directory: engine-source
+        run: cargo build --release --target wasm32-unknown-unknown --no-default-features --lib
+
+      - name: Generate browser JavaScript bindings
+        run: |
+          mkdir -p site/engine
+          wasm-bindgen --target web --out-dir site/engine --out-name berserk engine-source/target/wasm32-unknown-unknown/release/berserk.wasm
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload website and compiled engine
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    environment:
+      name: github-pages
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
