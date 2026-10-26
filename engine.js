@@ -15,7 +15,7 @@
 
     this.onStatus("loading");
     this.ready = (async function () {
-      if (!apiBase || /YOUR[-_ ]?API|PASTE|CHANGE[-_ ]?ME/i.test(apiBase)) {
+      if (!apiBase || /YOUR|PASTE|CHANGE[-_ ]?ME/i.test(apiBase)) {
         throw new Error("Set window.BERSERK_API_URL in index.html to your deployed Berserk API HTTPS URL. See the README.");
       }
       var response = await fetch(apiBase + "/health", {
