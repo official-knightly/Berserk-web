@@ -66,6 +66,8 @@ self.addEventListener("message", async function (event) {
   if (message.type !== "search") return;
   try {
     const engine = await ensureEngine();
+    // Drain Rust's buffered UCI output so it cannot grow across repeated moves.
+    engine.take_output();
     engine.set_position(message.fen);
     const infoLines = [];
     engine.go_movetime(message.milliseconds, message.multiPV, function (line) {
@@ -81,6 +83,7 @@ self.addEventListener("message", async function (event) {
       }
     });
 
+    engine.take_output();
     self.postMessage({
       type: "result",
       id: message.id,
