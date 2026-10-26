@@ -4,7 +4,11 @@ on:
   push:
     branches: [main]
     paths:
-      - "site/**"
+      - "index.html"
+      - "style.css"
+      - "app.js"
+      - "engine.js"
+      - "engine-worker.js"
       - ".github/workflows/deploy.yml"
   workflow_dispatch:
 
@@ -53,16 +57,19 @@ jobs:
 
       - name: Generate browser JavaScript bindings
         run: |
-          mkdir -p site/engine
-          wasm-bindgen --target web --out-dir site/engine --out-name berserk engine-source/target/wasm32-unknown-unknown/release/berserk.wasm
+          mkdir -p engine
+          wasm-bindgen --target web --out-dir engine --out-name berserk engine-source/target/wasm32-unknown-unknown/release/berserk.wasm
+
+      - name: Remove build-only engine source
+        run: rm -rf engine-source
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
 
-      - name: Upload website and compiled engine
+      - name: Upload root website and compiled engine
         uses: actions/upload-pages-artifact@v3
         with:
-          path: site
+          path: .
 
   deploy:
     environment:
