@@ -1,94 +1,87 @@
 (function () {
   "use strict";
 
-  var currentScript = document.currentScript;
-  var siteBase = currentScript && currentScript.src
-    ? new URL(".", currentScript.src)
-    : new URL("./", window.location.href);
+  var rawBase = window.BERSERK_API_URL || "";
+  var apiBase = rawBase.trim().replace(/\/+$/, "");
 
   function BerserkEngine(options) {
     options = options || {};
     this.onStatus = typeof options.onStatus === "function" ? options.onStatus : function () {};
     this.onInfo = typeof options.onInfo === "function" ? options.onInfo : function () {};
     this.onError = typeof options.onError === "function" ? options.onError : function () {};
-    this.pending = new Map();
     this.sequence = 0;
-    this.worker = null;
-
+    this.stopped = false;
     var self = this;
-    this.ready = new Promise(function (resolve, reject) {
-      self.resolveReady = resolve;
-      self.rejectReady = reject;
-      try {
-        self.worker = new Worker(new URL("engine-worker.js", siteBase), { type: "module" });
-      } catch (error) {
-        reject(error);
-        return;
+
+    this.onStatus("loading");
+    this.ready = (async function () {
+      if (!apiBase || /YOUR[-_ ]?API|PASTE|CHANGE[-_ ]?ME/i.test(apiBase)) {
+        throw new Error("Set window.BERSERK_API_URL in index.html to your deployed Berserk API HTTPS URL. See the README.");
       }
-
-      self.worker.addEventListener("message", function (event) {
-        var message = event.data || {};
-        if (message.type === "ready") {
-          self.onStatus("ready");
-          self.resolveReady(self);
-          return;
-        }
-        if (message.type === "init-error") {
-          var initError = new Error(message.error || "Berserk WASM initialization failed");
-          self.onStatus("error");
-          self.onError(initError);
-          self.rejectReady(initError);
-          return;
-        }
-        if (message.type === "info") {
-          self.onInfo(message);
-          return;
-        }
-        if (message.type === "result" || message.type === "search-error") {
-          var pending = self.pending.get(message.id);
-          if (!pending) return;
-          self.pending.delete(message.id);
-          if (message.type === "result") pending.resolve(message);
-          else pending.reject(new Error(message.error || "Berserk search failed"));
-        }
+      var response = await fetch(apiBase + "/health", {
+        method: "GET",
+        cache: "no-store",
+        credentials: "omit"
       });
-
-      self.worker.addEventListener("error", function (event) {
-        var workerError = new Error(event.message || "The Berserk engine worker failed to load");
-        self.onStatus("error");
-        self.onError(workerError);
-        self.pending.forEach(function (entry) { entry.reject(workerError); });
-        self.pending.clear();
-        self.rejectReady(workerError);
-      });
-
-      self.onStatus("loading");
-      self.worker.postMessage({ type: "init" });
+      if (!response.ok) throw new Error("Berserk API health check failed (HTTP " + response.status + ").");
+      var health = await response.json();
+      if (health.status !== "ok") throw new Error("Berserk API is not healthy.");
+      self.onStatus("ready");
+      return self;
+    })().catch(function (error) {
+      self.onStatus("error");
+      self.onError(error);
+      throw error;
     });
   }
 
   BerserkEngine.prototype.search = async function (fen, milliseconds, multiPV, context) {
     await this.ready;
-    var self = this;
+    if (this.stopped) throw new Error("Berserk API client has been stopped.");
+
     var id = ++this.sequence;
-    return new Promise(function (resolve, reject) {
-      self.pending.set(id, { resolve: resolve, reject: reject });
-      self.worker.postMessage({
-        type: "search",
-        id: id,
-        fen: fen,
-        milliseconds: Math.max(100, Math.min(10000, Math.round(milliseconds))),
-        multiPV: Math.max(1, Math.min(8, Math.round(multiPV))),
-        context: context
-      });
+    this.onInfo({ context: context, line: "info string Requesting move from Berserk API" });
+
+    var response = await fetch(apiBase + "/api/analyze", {
+      method: "POST",
+      mode: "cors",
+      credentials: "omit",
+      cache: "no-store",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        fen: String(fen),
+        think_time_ms: Math.max(100, Math.min(10000, Math.round(Number(milliseconds) || 1000))),
+        multi_pv: Math.max(1, Math.min(8, Math.round(Number(multiPV) || 1))),
+        threads: 1,
+        context: context === undefined ? id : context
+      })
     });
+
+    var result;
+    try {
+      result = await response.json();
+    } catch (_) {
+      result = {};
+    }
+    if (!response.ok) {
+      throw new Error(result.detail || ("Berserk API search failed (HTTP " + response.status + ")."));
+    }
+    if (!result.bestmove) throw new Error("Berserk API returned no best move.");
+
+    return {
+      type: "result",
+      id: id,
+      context: context,
+      bestmove: result.bestmove,
+      scoreCp: result.scoreCp,
+      depth: result.depth,
+      nodes: result.nodes,
+      candidates: Array.isArray(result.candidates) ? result.candidates : []
+    };
   };
 
   BerserkEngine.prototype.terminate = function () {
-    if (this.worker) this.worker.terminate();
-    var error = new Error("Berserk engine worker was stopped");
-    this.pending.forEach(function (entry) { entry.reject(error); });
-    this.pending.clear();
+    this.stopped = true;
   };
 
   window.BerserkEngine = BerserkEngine;
