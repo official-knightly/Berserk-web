@@ -6,6 +6,7 @@ const ENGINE_PATH = process.env.ENGINE_PATH || new URL("../target/release/berser
 const MAX_MOVETIME = Math.max(100, Math.min(10000, Number(process.env.MAX_MOVETIME || 5000)));
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || "*").split(",").map(s => s.trim());
 let engine;
+let engineReady = false;
 let input = "";
 let waiters = [];
 let queue = Promise.resolve();
@@ -43,8 +44,14 @@ function bootEngine() {
     }
   });
   engine.stderr.on("data", chunk => console.error("[berserk]", String(chunk).trim()));
-  engine.on("exit", () => { engine = undefined; });
-  engine.stdin.write("uci\nisready\n");
+  engine.on("exit", () => { engine = undefined; engineReady = false; });
+}
+async function ensureEngine() {
+  bootEngine();
+  if (engineReady) return;
+  await command("uci", line => line === "uciok", 20000);
+  await command("isready", line => line === "readyok", 20000);
+  engineReady = true;
 }
 function command(cmd, match, timeout = 12000, collect = false) {
   return new Promise((resolve, reject) => {
@@ -57,8 +64,7 @@ function command(cmd, match, timeout = 12000, collect = false) {
   });
 }
 async function analyse(body) {
-  bootEngine();
-  await command("isready", line => line === "readyok", 20000);
+  await ensureEngine();
   const moves = body.moves ?? [];
   if (!Array.isArray(moves) || moves.length > 300 || moves.some(m => typeof m !== "string" || !/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(m))) {
     throw Object.assign(new Error("moves must be an array of UCI moves such as e2e4"), { status: 400 });
