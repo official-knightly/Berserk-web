@@ -1,0 +1,16 @@
+{
+  "name": "berserk-web-cloudflare-deployment",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "tail": "wrangler tail"
+  },
+  "devDependencies": {
+    "wrangler": "^4.45.0"
+  },
+  "dependencies": {
+    "@cloudflare/containers": "^0.1.0"
+  }
+}
