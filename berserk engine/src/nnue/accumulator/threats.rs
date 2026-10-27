@@ -7,16 +7,17 @@ use crate::{
 };
 
 mod threat_index;
-pub use threat_index::{initialize, threat_index};
+pub use threat_index::initialize;
+pub use threat_index::threat_index as get_threat_index;
 
 #[cfg(not(target_feature = "avx2"))]
 mod scalar;
 #[cfg(not(target_feature = "avx2"))]
-pub use scalar::*;
+pub use scalar::{push_threats_on_change, push_threats_on_move, push_threats_on_mutate};
 #[cfg(target_feature = "avx2")]
 mod vectorized;
 #[cfg(target_feature = "avx2")]
-pub use vectorized::*;
+pub use vectorized::{push_threats_on_change, push_threats_on_move, push_threats_on_mutate};
 
 #[derive(Copy, Clone)]
 #[repr(transparent)]
@@ -84,7 +85,7 @@ impl ThreatAccumulator {
                 let attacked = board.piece_on(target);
                 let mirrored = king.is_kingside();
 
-                let index = threat_index(piece, square, attacked, target, mirrored, pov);
+                let index = get_threat_index(piece, square, attacked, target, mirrored, pov);
                 adds.maybe_push(index >= 0, index as usize);
             }
         }
@@ -146,7 +147,7 @@ impl ThreatAccumulator {
             let (piece, from, attacked, to, add) = (td.piece(), td.from(), td.attacked(), td.to(), td.add());
             let mirrored = king.is_kingside();
 
-            let index = threat_index(piece, from, attacked, to, mirrored, pov);
+            let index = get_threat_index(piece, from, attacked, to, mirrored, pov);
             if add {
                 adds.maybe_push(index >= 0, index as usize);
             } else {
