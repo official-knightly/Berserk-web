@@ -1,18 +1,25 @@
 # Berserk Web — Engine Lab
 
-A chessboard.js website for playing against the bundled Berserk chess engine.
+A chessboard.js website for playing against the Berserk chess engine in the browser. The engine runs locally in a Web Worker through WebAssembly; no remote engine API or API key is required.
 
 ## Run locally
 
-The site runs the Rust engine in a Web Worker through WebAssembly. No API key or remote engine service is
-required. Serve this directory over HTTP (opening `index.html` directly will block workers and WebAssembly):
+The website requires HTTP or HTTPS because browsers restrict Web Workers and WebAssembly when opening an HTML file directly.
 
 ```bash
 python -m http.server 8000
 ```
 
-Open `http://localhost:8000`. GitHub Pages builds the Rust source in `berserk engine/` and publishes the
-generated WASM files automatically.
+Open `http://localhost:8000`. The browser worker in `engine-worker.js` imports `./engine/berserk.js`, initializes the generated WebAssembly module, and exposes the Berserk engine to the existing game UI.
+
+## WebAssembly files
+
+- `engine/berserk_bg.wasm` — the actual Berserk WebAssembly binary, stored with Git LFS
+- `engine/README.md` — binary and generation notes
+- The deployment workflow runs `wasm-bindgen` 0.2.129 with `--target web` and generates `berserk.js`, TypeScript declarations, and the matching WASM output into `dist/engine/`
+- The generated loader and WASM are deployed together, so the worker's relative import resolves correctly
+
+The deployment workflow checks out Git LFS objects, verifies the expected binary size and WebAssembly v1 header, and fails clearly if the real LFS object is missing or invalid.
 
 ## Project files
 
@@ -21,4 +28,4 @@ generated WASM files automatically.
 - `app.js` — chessboard and game UI
 - `engine.js` — Web Worker-backed engine adapter
 - `engine-worker.js` — WASM engine worker
-- `berserk engine/` — Berserk Rust source
+- `engine/` — Berserk WebAssembly engine binary and integration notes
