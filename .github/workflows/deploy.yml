@@ -9,7 +9,8 @@ on:
       - "app.js"
       - "engine.js"
       - "engine-worker.js"
-      - "berserk engine/**"
+      - "engine/**"
+      - ".gitattributes"
       - "README.md"
       - ".github/workflows/deploy.yml"
   workflow_dispatch:
@@ -27,18 +28,43 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout website
+      - name: Checkout website and Git LFS objects
         uses: actions/checkout@v4
+        with:
+          lfs: true
 
-      - name: Assemble static Pages artifact
+      - name: Validate Berserk WebAssembly binary
         run: |
-          rustup target add wasm32-unknown-unknown
-          cargo install wasm-bindgen-cli --locked
-          cargo build --manifest-path "berserk engine/Cargo.toml" --lib --no-default-features --release --target wasm32-unknown-unknown
+          python3 - <<'PY'
+          from pathlib import Path
+          import sys
+
+          wasm = Path("engine/berserk_bg.wasm")
+          if not wasm.is_file():
+              sys.exit("Missing engine/berserk_bg.wasm. Add the actual binary through Git LFS.")
+          size = wasm.stat().st_size
+          header = wasm.open("rb").read(8)
+          if size != 64466634:
+              sys.exit(f"Unexpected Berserk WASM size: {size} bytes (expected 64466634).")
+          if header != b"\\x00asm\\x01\\x00\\x00\\x00":
+              sys.exit(f"Invalid WebAssembly header: {header.hex()}")
+          print(f"Validated Berserk WASM: {size} bytes; WebAssembly v1 header OK.")
+          PY
+
+      - name: Install matching wasm-bindgen CLI
+        run: cargo install wasm-bindgen-cli --version 0.2.129 --locked
+
+      - name: Generate browser loader and assemble Pages artifact
+        run: |
           mkdir -p dist
-          wasm-bindgen "berserk engine/target/wasm32-unknown-unknown/release/berserk.wasm" --target web --out-dir dist/engine
           cp index.html style.css app.js engine.js engine-worker.js dist/
+          wasm-bindgen engine/berserk_bg.wasm --target web --out-dir dist/engine --out-name berserk
+          test -s dist/engine/berserk.js
+          test -s dist/engine/berserk_bg.wasm
+          test -s dist/engine/berserk.d.ts
+          test -s dist/engine/berserk_bg.wasm.d.ts
           cp README.md dist/README.md
+          echo "Generated Berserk JS loader, declarations, and WASM in dist/engine."
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
