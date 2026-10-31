@@ -31,18 +31,16 @@ jobs:
         with:
           lfs: true
 
-      - name: Check for the uploaded engine binary
+      - name: Require the actual engine binary
         id: preflight
         run: |
-          if [ -s engine/berserk_bg.wasm ]; then
-            echo "wasm_available=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "wasm_available=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::Deployment skipped: engine/berserk_bg.wasm has not been added through Git LFS yet."
+          if [ ! -s engine/berserk_bg.wasm ]; then
+            echo "::error::engine/berserk_bg.wasm is missing. Git LFS did not provide the engine binary."
+            exit 1
           fi
+          echo "wasm_available=true" >> "$GITHUB_OUTPUT"
 
       - name: Validate Berserk WebAssembly binary
-        if: steps.preflight.outputs.wasm_available == 'true'
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -50,45 +48,42 @@ jobs:
 
           wasm = Path("engine/berserk_bg.wasm")
           size = wasm.stat().st_size
-          header = wasm.open("rb").read(8)
-          if size < 1_000_000:
-              sys.exit(f"Berserk WASM is unexpectedly small: {size} bytes. The Git LFS object may not have downloaded.")
-          if size > 100_000_000:
-              sys.exit(f"Berserk WASM is unexpectedly large: {size} bytes.")
-          if header != b"\x00asm\x01\x00\x00\x00":
+          with wasm.open("rb") as file:
+              header = file.read(8)
+              prefix = header + file.read(128)
+          if size < 1_000_000 or size > 100_000_000:
+              sys.exit(f"Unexpected Berserk WASM size: {size} bytes.")
+          if header != b"\\x00asm\\x01\\x00\\x00\\x00":
               sys.exit(f"Invalid WebAssembly header: {header.hex()}")
+          if prefix.startswith(b"version https://git-lfs.github.com/spec/v1"):
+              sys.exit("Git LFS pointer text was checked out instead of the real WASM object.")
           print(f"Validated Berserk WASM: {size} bytes; WebAssembly v1 header OK.")
           PY
 
       - name: Check browser engine loader syntax
-        if: steps.preflight.outputs.wasm_available == 'true'
         run: |
           node --check engine/engine.js
           node --check engine/engine-worker.js
+          node --check engine/uci-worker.js
 
       - name: Install matching wasm-bindgen CLI
-        if: steps.preflight.outputs.wasm_available == 'true'
         run: cargo install wasm-bindgen-cli --version 0.2.129 --locked
 
-      - name: Generate browser loader and assemble Pages artifact
-        if: steps.preflight.outputs.wasm_available == 'true'
+      - name: Assemble Pages artifact
         run: |
           mkdir -p dist
           cp index.html style.css README.md dist/
           cp -r engine dist/engine
 
       - name: Configure GitHub Pages
-        if: steps.preflight.outputs.wasm_available == 'true'
         uses: actions/configure-pages@v5
 
       - name: Upload website artifact
-        if: steps.preflight.outputs.wasm_available == 'true'
         uses: actions/upload-pages-artifact@v3
         with:
           path: dist
 
   deploy:
-    if: needs.build.outputs.wasm_available == 'true'
     environment:
       name: github-pages
     runs-on: ubuntu-latest
