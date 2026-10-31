@@ -51,8 +51,8 @@ jobs:
           wasm = Path("engine/berserk_bg.wasm")
           size = wasm.stat().st_size
           header = wasm.open("rb").read(8)
-          if size != 64466634:
-              sys.exit(f"Unexpected Berserk WASM size: {size} bytes (expected 64466634).")
+          if size != 64466840:
+              sys.exit(f"Unexpected Berserk WASM size: {size} bytes (expected 64466840).")
           if header != b"\x00asm\x01\x00\x00\x00":
               sys.exit(f"Invalid WebAssembly header: {header.hex()}")
           print(f"Validated Berserk WASM: {size} bytes; WebAssembly v1 header OK.")
