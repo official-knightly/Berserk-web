@@ -1,12 +1,25 @@
-import init, { Engine } from "./engine/berserk.js";
+import init, { Engine } from "./berserk.js";
 
 let engineInstance = null;
 let initialization = null;
 
-async function ensureEngine() {
+async function ensureEngine(wasmUrl) {
   if (!initialization) {
     initialization = (async function () {
-      await init();
+      let wasmInput;
+      if (wasmUrl) {
+        const response = await fetch(wasmUrl, { cache: "force-cache" });
+        if (!response.ok) {
+          throw new Error("Berserk WASM request failed: HTTP " + response.status + " " + response.statusText);
+        }
+        const bytes = new Uint8Array(await response.arrayBuffer());
+        if (bytes.byteLength < 1024 * 1024 ||
+            bytes[0] !== 0 || bytes[1] !== 0x61 || bytes[2] !== 0x73 || bytes[3] !== 0x6d) {
+          throw new Error("Berserk WASM is not a complete WebAssembly binary (" + bytes.byteLength + " bytes). Check the Git LFS download.");
+        }
+        wasmInput = bytes;
+      }
+      await init(wasmInput);
       engineInstance = new Engine();
       engineInstance.set_threads(1);
       return engineInstance;
@@ -52,7 +65,7 @@ self.addEventListener("message", async function (event) {
   const message = event.data || {};
   if (message.type === "init") {
     try {
-      await ensureEngine();
+      await ensureEngine(message.wasmUrl);
       self.postMessage({ type: "ready" });
     } catch (error) {
       self.postMessage({
@@ -65,7 +78,7 @@ self.addEventListener("message", async function (event) {
 
   if (message.type !== "search") return;
   try {
-    const engine = await ensureEngine();
+    const engine = await ensureEngine(message.wasmUrl);
     // Drain Rust's buffered UCI output so it cannot grow across repeated moves.
     engine.take_output();
     engine.set_position(message.fen);
