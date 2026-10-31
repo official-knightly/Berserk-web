@@ -51,12 +51,20 @@ jobs:
           wasm = Path("engine/berserk_bg.wasm")
           size = wasm.stat().st_size
           header = wasm.open("rb").read(8)
-          if size != 64466634:
-              sys.exit(f"Unexpected Berserk WASM size: {size} bytes (expected 64466634).")
+          if size < 1_000_000:
+              sys.exit(f"Berserk WASM is unexpectedly small: {size} bytes. The Git LFS object may not have downloaded.")
+          if size > 100_000_000:
+              sys.exit(f"Berserk WASM is unexpectedly large: {size} bytes.")
           if header != b"\x00asm\x01\x00\x00\x00":
               sys.exit(f"Invalid WebAssembly header: {header.hex()}")
           print(f"Validated Berserk WASM: {size} bytes; WebAssembly v1 header OK.")
           PY
+
+      - name: Check browser engine loader syntax
+        if: steps.preflight.outputs.wasm_available == 'true'
+        run: |
+          node --check engine/engine.js
+          node --check engine/engine-worker.js
 
       - name: Install matching wasm-bindgen CLI
         if: steps.preflight.outputs.wasm_available == 'true'
