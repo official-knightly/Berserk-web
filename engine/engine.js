@@ -6,7 +6,7 @@
     this.onStatus = typeof options.onStatus === "function" ? options.onStatus : function () {};
     this.onInfo = typeof options.onInfo === "function" ? options.onInfo : function () {};
     this.onError = typeof options.onError === "function" ? options.onError : function () {};
-    this.worker = new Worker("./engine-worker.js", { type: "module" });
+    this.worker = new Worker("./engine/engine-worker.js", { type: "module" });
     this.pending = new Map();
     this.sequence = 0;
     this.stopped = false;
