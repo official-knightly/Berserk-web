@@ -1,4 +1,4 @@
-import init, { Engine } from "./engine/berserk.js";
+import init, { Engine } from "./berserk.js";
 
 let engineInstance = null;
 let initialization = null;
