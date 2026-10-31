@@ -6,11 +6,7 @@ on:
     paths:
       - "index.html"
       - "style.css"
-      - "app.js"
-      - "engine.js"
-      - "engine-worker.js"
       - "engine/**"
-      - ".gitattributes"
       - "README.md"
       - ".github/workflows/deploy.yml"
   workflow_dispatch:
@@ -70,18 +66,8 @@ jobs:
         if: steps.preflight.outputs.wasm_available == 'true'
         run: |
           mkdir -p dist
-          cp index.html style.css app.js engine.js engine-worker.js dist/
-          mkdir -p .wasm-input engine dist/engine
-          cp engine/berserk_bg.wasm .wasm-input/berserk_bg.wasm
-          wasm-bindgen .wasm-input/berserk_bg.wasm --target web --out-dir engine --out-name berserk
-          test -s engine/berserk.js
-          test -s engine/berserk_bg.wasm
-          test -s engine/berserk.d.ts
-          test -s engine/berserk_bg.wasm.d.ts
-          cp engine/berserk.js engine/berserk_bg.wasm engine/berserk.d.ts engine/berserk_bg.wasm.d.ts dist/engine/
-          if [ -f engine/berserk_bg.js ]; then cp engine/berserk_bg.js dist/engine/; fi
-          cp README.md dist/README.md
-          echo "Generated Berserk JS loader and declarations in engine/, then copied the runtime files to dist/engine/."
+          cp index.html style.css README.md dist/
+          cp -r engine dist/engine
 
       - name: Configure GitHub Pages
         if: steps.preflight.outputs.wasm_available == 'true'
