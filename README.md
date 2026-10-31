@@ -1,11 +1,10 @@
 # Berserk Web — Engine Lab
 
-A chessboard.js website for playing against the bundled Berserk chess engine.
+A chessboard.js website for playing against the Berserk chess engine in the browser. The engine runs locally in a Web Worker through WebAssembly; no remote engine API or API key is required.
 
 ## Run locally
 
-The site runs the Rust engine in a Web Worker through WebAssembly. No API key or remote engine service is
-required. Serve this directory over HTTP (opening `index.html` directly will block workers and WebAssembly):
+The website requires HTTP or HTTPS because browsers restrict Web Workers and WebAssembly when opening an HTML file directly.
 
 ```bash
 python -m http.server 8000

@@ -23,25 +23,64 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      wasm_available: ${{ steps.preflight.outputs.wasm_available }}
     steps:
-      - name: Checkout website
+      - name: Checkout website and Git LFS objects
         uses: actions/checkout@v4
+        with:
+          lfs: true
 
-      - name: Assemble static Pages artifact
+      - name: Check for the uploaded engine binary
+        id: preflight
+        run: |
+          if [ -s engine/berserk_bg.wasm ]; then
+            echo "wasm_available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "wasm_available=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Deployment skipped: engine/berserk_bg.wasm has not been added through Git LFS yet."
+          fi
+
+      - name: Validate Berserk WebAssembly binary
+        if: steps.preflight.outputs.wasm_available == 'true'
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import sys
+
+          wasm = Path("engine/berserk_bg.wasm")
+          size = wasm.stat().st_size
+          header = wasm.open("rb").read(8)
+          if size != 64466634:
+              sys.exit(f"Unexpected Berserk WASM size: {size} bytes (expected 64466634).")
+          if header != b"\x00asm\x01\x00\x00\x00":
+              sys.exit(f"Invalid WebAssembly header: {header.hex()}")
+          print(f"Validated Berserk WASM: {size} bytes; WebAssembly v1 header OK.")
+          PY
+
+      - name: Install matching wasm-bindgen CLI
+        if: steps.preflight.outputs.wasm_available == 'true'
+        run: cargo install wasm-bindgen-cli --version 0.2.129 --locked
+
+      - name: Generate browser loader and assemble Pages artifact
+        if: steps.preflight.outputs.wasm_available == 'true'
         run: |
           mkdir -p dist
           cp index.html style.css README.md dist/
           cp -r engine dist/engine
 
       - name: Configure GitHub Pages
+        if: steps.preflight.outputs.wasm_available == 'true'
         uses: actions/configure-pages@v5
 
       - name: Upload website artifact
+        if: steps.preflight.outputs.wasm_available == 'true'
         uses: actions/upload-pages-artifact@v3
         with:
           path: dist
 
   deploy:
+    if: needs.build.outputs.wasm_available == 'true'
     environment:
       name: github-pages
     runs-on: ubuntu-latest
