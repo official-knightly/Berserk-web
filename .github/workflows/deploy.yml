@@ -23,40 +23,31 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    outputs:
-      wasm_available: ${{ steps.preflight.outputs.wasm_available }}
     steps:
       - name: Checkout website and Git LFS objects
         uses: actions/checkout@v4
         with:
           lfs: true
 
-      - name: Require the actual engine binary
-        id: preflight
-        run: |
-          if [ ! -s engine/berserk_bg.wasm ]; then
-            echo "::error::engine/berserk_bg.wasm is missing. Git LFS did not provide the engine binary."
-            exit 1
-          fi
-          echo "wasm_available=true" >> "$GITHUB_OUTPUT"
-
-      - name: Validate Berserk WebAssembly binary
+      - name: Require and validate the actual engine binary
         run: |
           python3 - <<'PY'
           from pathlib import Path
           import sys
 
           wasm = Path("engine/berserk_bg.wasm")
+          if not wasm.is_file():
+              sys.exit("engine/berserk_bg.wasm is missing. Git LFS did not provide the engine binary.")
           size = wasm.stat().st_size
           with wasm.open("rb") as file:
               header = file.read(8)
               prefix = header + file.read(128)
-          if size < 1_000_000 or size > 100_000_000:
-              sys.exit(f"Unexpected Berserk WASM size: {size} bytes.")
-          if header != b"\\x00asm\\x01\\x00\\x00\\x00":
-              sys.exit(f"Invalid WebAssembly header: {header.hex()}")
           if prefix.startswith(b"version https://git-lfs.github.com/spec/v1"):
               sys.exit("Git LFS pointer text was checked out instead of the real WASM object.")
+          if size < 1_000_000 or size > 100_000_000:
+              sys.exit(f"Unexpected Berserk WASM size: {size} bytes.")
+          if header != b"\x00asm\x01\x00\x00\x00":
+              sys.exit(f"Invalid WebAssembly header: {header.hex()}")
           print(f"Validated Berserk WASM: {size} bytes; WebAssembly v1 header OK.")
           PY
 
@@ -78,7 +69,7 @@ jobs:
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
 
-      - name: Upload website artifact
+      - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: dist
@@ -93,5 +84,4 @@ jobs:
       id-token: write
     steps:
       - name: Deploy to GitHub Pages
-        id: deployment
         uses: actions/deploy-pages@v4
