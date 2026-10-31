@@ -19,7 +19,7 @@ async function ensureEngine(wasmUrl) {
         }
         wasmInput = bytes;
       }
-      await init(wasmInput);
+      await init({ module_or_path: wasmInput });
       engineInstance = new Engine();
       engineInstance.set_threads(1);
       return engineInstance;
