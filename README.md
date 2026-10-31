@@ -11,14 +11,14 @@ required. Serve this directory over HTTP (opening `index.html` directly will blo
 python -m http.server 8000
 ```
 
-Open `http://localhost:8000`. GitHub Pages builds the Rust source in `berserk engine/` and publishes the
-generated WASM files automatically.
+Open `http://localhost:8000`. The checked-in WebAssembly bundle is loaded from `engine/`, so no Rust
+toolchain or API key is required to play locally.
 
 ## Project files
 
 - `index.html` — page layout
 - `style.css` — styling
-- `app.js` — chessboard and game UI
-- `engine.js` — Web Worker-backed engine adapter
-- `engine-worker.js` — WASM engine worker
-- `berserk engine/` — Berserk Rust source
+- `engine/app.js` — chessboard and game UI
+- `engine/engine.js` — Web Worker-backed engine adapter
+- `engine/engine-worker.js` — WASM engine worker
+- `engine/berserk_bg.wasm` — bundled Berserk engine binary (tracked with Git LFS)

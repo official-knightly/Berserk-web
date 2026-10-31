@@ -6,10 +6,7 @@ on:
     paths:
       - "index.html"
       - "style.css"
-      - "app.js"
-      - "engine.js"
-      - "engine-worker.js"
-      - "berserk engine/**"
+      - "engine/**"
       - "README.md"
       - ".github/workflows/deploy.yml"
   workflow_dispatch:
@@ -32,13 +29,9 @@ jobs:
 
       - name: Assemble static Pages artifact
         run: |
-          rustup target add wasm32-unknown-unknown
-          cargo install wasm-bindgen-cli --locked
-          cargo build --manifest-path "berserk engine/Cargo.toml" --release --target wasm32-unknown-unknown
           mkdir -p dist
-          wasm-bindgen "berserk engine/target/wasm32-unknown-unknown/release/berserk.wasm" --target web --out-dir dist/engine
-          cp index.html style.css app.js engine.js engine-worker.js dist/
-          cp README.md dist/README.md
+          cp index.html style.css README.md dist/
+          cp -r engine dist/engine
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
