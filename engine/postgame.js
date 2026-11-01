@@ -18,9 +18,20 @@ function openReview(pgn,title){
  reviewEngine=new BerserkEngine({onError:function(err){$("review-best").textContent="Engine unavailable: "+err.message;}});
  reviewEngine.ready.then(function(){$("review-best").textContent="Berserk is ready. Choose Analyze position to evaluate this move.";}).catch(function(){});
 }
+function drawReviewArrow(uci){
+ var svg=$("review-arrow-layer");if(!svg||!reviewBoard)return;svg.textContent="";
+ if(!uci||uci.length<4)return;
+ var ns="http://www.w3.org/2000/svg",defs=document.createElementNS(ns,"defs"),marker=document.createElementNS(ns,"marker");
+ marker.setAttribute("id","review-arrow-head");marker.setAttribute("markerWidth","5");marker.setAttribute("markerHeight","5");marker.setAttribute("refX","4");marker.setAttribute("refY","2.5");marker.setAttribute("orient","auto");
+ var head=document.createElementNS(ns,"path");head.setAttribute("d","M0,0 L5,2.5 L0,5 Z");head.setAttribute("fill","#b7d4a8");marker.appendChild(head);defs.appendChild(marker);svg.appendChild(defs);
+ function point(square){var file=square.charCodeAt(0)-97,rank=Number(square.charAt(1));return reviewBoard.orientation()==="black"?{x:7-file+.5,y:rank-1+.5}:{x:file+.5,y:8-rank+.5};}
+ var a=point(uci.slice(0,2)),b=point(uci.slice(2,4)),line=document.createElementNS(ns,"line");
+ line.setAttribute("x1",a.x);line.setAttribute("y1",a.y);line.setAttribute("x2",b.x);line.setAttribute("y2",b.y);line.setAttribute("stroke","#b7d4a8");line.setAttribute("stroke-width",".14");line.setAttribute("stroke-linecap","round");line.setAttribute("marker-end","url(#review-arrow-head)");svg.appendChild(line);
+}
 function renderReview(){
  var replay=new Chess();for(var i=0;i<reviewPly;i++)replay.move(reviewMoves[i]);
- reviewBoard.position(replay.fen(),false);
+ reviewBoard.position(replay.fen(),false); 
+ var arrow=$("review-arrow-layer");if(arrow)arrow.textContent="";
  $("review-ply-label").textContent=reviewPly===0?"Start position":("Move "+Math.ceil(reviewPly/2)+(reviewPly%2?" · White":" · Black"));
  $("review-prev").disabled=reviewPly===0;$("review-next").disabled=reviewPly>=reviewMoves.length;
  var list=$("import-review-moves");list.textContent="";
@@ -37,7 +48,7 @@ function analyzePosition(){
  if(replay.turn()==="b")cp=-cp;
  $("review-eval").textContent=Number.isFinite(cp)?(cp>0?"+":"")+(cp/100).toFixed(2):"—";
  var best=r.candidates&&r.candidates[0]?r.candidates[0].uci:r.bestmove;
- if(best&&best.length>=4){var cp2=new Chess(replay.fen());var m=cp2.move({from:best.slice(0,2),to:best.slice(2,4),promotion:best[4]||"q"});$("review-best").textContent=m?"Best move: "+m.san+" · depth "+(r.depth||"—"):"No legal best move returned.";}
+ if(best&&best.length>=4){var cp2=new Chess(replay.fen());var m=cp2.move({from:best.slice(0,2),to:best.slice(2,4),promotion:best[4]||"q"});if(m){drawReviewArrow(best);$("review-best").textContent="Best move: "+m.san+" · depth "+(r.depth||"—");}else $("review-best").textContent="No legal best move returned.";}
  else $("review-best").textContent="No best move returned.";
  }).catch(function(e){$("review-best").textContent="Analysis failed: "+e.message;}).finally(function(){$("review-analyze-position").disabled=false;});
 }
