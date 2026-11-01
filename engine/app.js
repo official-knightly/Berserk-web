@@ -32,7 +32,11 @@
   var qualityLabel = $("quality-label");
   var qualityMove = $("quality-move");
   var qualityDetail = $("quality-detail");
+  var accuracyValue = $("accuracy-value");
+  var evaluationValue = $("evaluation-value");
   var premoveStatus = $("premove-status");
+  var humanAccuracyTotal = 0;
+  var humanAccuracyCount = 0;
 
   function setEngineStatus(message, state) {
     engineStatus.textContent = message;
@@ -58,6 +62,30 @@
     return (value > 0 ? "+" : "") + value.toFixed(2);
   }
 
+  function updateEvaluation(sideToMoveScore) {
+    if (sideToMoveScore === null || !Number.isFinite(sideToMoveScore)) {
+      evaluationValue.textContent = "—";
+      return;
+    }
+    // Engine scores are from the side-to-move perspective; show White's POV.
+    var whiteScore = game.turn() === "w" ? sideToMoveScore : -sideToMoveScore;
+    evaluationValue.textContent = formatEval(whiteScore);
+  }
+
+  function updateAccuracy(loss, countMove) {
+    if (loss === null || !Number.isFinite(loss)) return;
+    // A transparent approximation from centipawn loss, not an official platform metric.
+    var moveAccuracy = Math.max(0, Math.min(100, 100 * Math.exp(-Math.max(0, loss) / 300)));
+    if (countMove) {
+      humanAccuracyTotal += moveAccuracy;
+      humanAccuracyCount++;
+    }
+    accuracyValue.textContent = humanAccuracyCount
+      ? Math.round(humanAccuracyTotal / humanAccuracyCount) + "%"
+      : "—";
+    return moveAccuracy;
+  }
+
   function prepareHumanBaseline() {
     if (!engineReady || !gameStarted || game.game_over() || game.turn() !== humanSide) return Promise.resolve(null);
     var fen = game.fen();
@@ -69,6 +97,7 @@
     baselinePromise = engine.search(fen, 350, 1, token).then(function (result) {
       if (token !== turnToken || game.fen() !== fen) return null;
       analysisBaseline = scoreFromResult(result);
+      updateEvaluation(analysisBaseline);
       return analysisBaseline;
     }).catch(function () {
       if (analysisBaselineFen === fen) analysisBaseline = null;
@@ -77,7 +106,7 @@
     return baselinePromise;
   }
 
-  function showMoveReview(move, before, after) {
+  function showMoveReview(move, before, after, isHumanMove) {
     qualityMove.textContent = move || "Last move";
     if (before === null || after === null) {
       qualityLabel.textContent = "Not rated";
@@ -85,6 +114,8 @@
       return;
     }
     var loss = Math.max(0, before - after);
+    var moveAccuracy = updateAccuracy(loss, !!isHumanMove);
+
     var label;
     if (loss <= 10) label = "Best";
     else if (loss <= 25) label = "Excellent";
@@ -94,13 +125,14 @@
     else label = "Blunder";
     qualityLabel.textContent = label;
     qualityDetail.textContent = "Eval: " + formatEval(before) + " → " + formatEval(after) +
-      " · loss " + Math.round(loss) + " cp";
+      " · loss " + Math.round(loss) + " cp" +
+      (moveAccuracy === undefined ? "" : " · accuracy " + Math.round(moveAccuracy) + "%");
   }
 
   function completeEngineMoveReview() {
     if (!pendingEngineReview) return;
     showMoveReview("Berserk: " + pendingEngineReview.move, pendingEngineReview.before,
-      analysisBaseline === null ? null : -analysisBaseline);
+      analysisBaseline === null ? null : -analysisBaseline, false);
     pendingEngineReview = null;
   }
 
@@ -314,7 +346,7 @@
       engineBusy = false;
       if (lastHumanMove) {
         var enginePerspective = scoreFromResult(result);
-        showMoveReview(lastHumanMove, beforeScore, enginePerspective === null ? null : -enginePerspective);
+        showMoveReview(lastHumanMove, beforeScore, enginePerspective === null ? null : -enginePerspective, true);
         lastHumanMove = null;
         lastHumanBeforeFen = null;
       }
@@ -372,6 +404,13 @@
     lastHumanMove = null;
     lastHumanBeforeFen = null;
     pendingEngineReview = null;
+    humanAccuracyTotal = 0;
+    humanAccuracyCount = 0;
+    accuracyValue.textContent = "—";
+    evaluationValue.textContent = "—";
+    qualityLabel.textContent = "Waiting for a move";
+    qualityMove.textContent = "—";
+    qualityDetail.textContent = "Berserk will compare your move with the evaluation before and after it.";
     game.reset();
     arrows = [];
     arrowStart = null;
