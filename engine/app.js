@@ -220,7 +220,7 @@
           var cell = document.createElement("button");
           cell.type = "button";
           cell.className = "review-move-cell";
-          if (!move) { row.appendChild(cell); return; }
+          if (!move) { cell.disabled = true; cell.setAttribute("aria-hidden", "true"); row.appendChild(cell); return; }
           var record = reviewed[i + (move.color === "b" ? 1 : 0)];
           if (record) {
             var icon = document.createElement("img");
