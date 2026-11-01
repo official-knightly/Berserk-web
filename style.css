@@ -11,3 +11,5 @@
 .quality-detail{margin:10px 0 0;color:var(--text);font-size:12px}
 .quality-note{margin:10px 0 0;color:var(--muted);font-size:10px;line-height:1.5}
 @media(max-width:420px){.board-actions{gap:5px}.board-actions .button{padding:8px;font-size:10px}}
+
+.board-hint{max-width:680px;margin:7px auto 0;color:var(--muted);font-size:10px;line-height:1.5}
