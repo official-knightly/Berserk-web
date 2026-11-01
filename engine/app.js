@@ -843,6 +843,7 @@
         lastPremoveHighlight = { from: source, to: target };
         renderPremoveHighlight();
         premoveStatus.textContent = "Premove queued: " + source + " → " + target;
+        if ($("cancel-premove-btn")) $("cancel-premove-btn").disabled = false;
         return "snapback";
       }
       if (game.turn() !== humanSide) return "snapback";
