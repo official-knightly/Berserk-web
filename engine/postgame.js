@@ -45,7 +45,7 @@ function renderReview(){
  $("review-prev").disabled=reviewPly===0;$("review-next").disabled=reviewPly>=reviewMoves.length;
  var list=$("import-review-moves");list.textContent="";
  var row=0;
- reviewMoves.forEach(function(m,i){var b=document.createElement("button");b.textContent=(i%2===0?(Math.floor(i/2)+1)+". ":"")+m.san;b.className=i===reviewPly-1?"active":"";var grade=reviewGrades[i];if(grade){b.classList.add("grade-"+grade.label.toLowerCase().replace(/\\s+/g,"-"));b.title=grade.label+(grade.loss===null?"":" · "+Math.round(grade.loss)+" cp loss");b.textContent+=" · "+grade.label;}b.addEventListener("click",function(){reviewPly=i+1;renderReview();});list.appendChild(b);});
+ reviewMoves.forEach(function(m,i){var b=document.createElement("button");b.textContent=(i%2===0?(Math.floor(i/2)+1)+". ":"")+m.san;b.className=i===reviewPly-1?"active":"";var grade=reviewGrades[i];if(grade){b.classList.add("grade-"+grade.label.toLowerCase().replace(/ /g,"-"));b.title=grade.label+(grade.loss===null?"":" · "+Math.round(grade.loss)+" cp loss");b.textContent+=" · "+grade.label;}b.addEventListener("click",function(){reviewPly=i+1;renderReview();});list.appendChild(b);});
  $("review-eval").textContent="Not analyzed";$("review-best").textContent="Analyze this position with Berserk.";
 }
 function analyzePosition(){
