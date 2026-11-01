@@ -92,3 +92,41 @@
   .move-tools{display:grid;grid-template-columns:1fr 1fr}
   .engine-card{padding:14px}
 }
+
+/* Berserk game hub, post-game actions and imported review */
+.import-hub,.postgame-panel,.import-review{width:min(1120px,calc(100% - 32px));margin:22px auto;padding:20px;border:1px solid var(--line);border-radius:12px;background:linear-gradient(145deg,#202722,#191e1b);box-shadow:0 12px 32px #0003}
+.import-hub{display:grid;grid-template-columns:1fr 1.25fr;gap:14px 22px;align-items:center}
+.import-copy h2,.postgame-head h2,.review-top h2{margin:3px 0 6px;font-size:22px;letter-spacing:-.04em}
+.import-copy p:not(.eyebrow),.postgame-head p:not(.eyebrow){color:var(--muted);font-size:12px;line-height:1.5;margin:0}
+.import-controls{display:flex;gap:8px;min-width:0}
+.import-controls select,.import-controls input,.import-controls textarea{min-width:0;flex:1;background:#111713;color:var(--text);border:1px solid #39433b;border-radius:7px;padding:11px;font:inherit;font-size:12px}
+.import-pgn-controls{grid-column:1/-1;align-items:stretch}
+.import-pgn-controls textarea{resize:vertical;min-height:44px}
+.file-label{display:flex;align-items:center;white-space:nowrap}
+.import-status{grid-column:1/-1;color:var(--muted);font-size:11px;margin:0}
+.import-results{grid-column:1/-1;display:grid;gap:7px}
+.import-game-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;background:#151b17;border:1px solid var(--line);border-radius:7px;font-size:12px}
+.import-game-row span{color:var(--muted)}
+.postgame-panel[hidden],.import-review[hidden]{display:none}
+.postgame-head,.review-top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.postgame-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.postgame-panel{border-color:#718b61}
+.import-review{max-width:1120px}
+.review-layout{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(280px,.9fr);gap:18px;margin-top:16px}
+.review-board-shell{max-width:100%}
+.review-nav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;font-size:11px;color:var(--muted)}
+.review-stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px}
+.review-stat-grid>div{padding:10px;background:#151b17;border:1px solid var(--line);border-radius:7px;min-width:0}
+.review-stat-grid span{display:block;color:var(--muted);font-size:10px;margin-bottom:4px}
+.review-stat-grid strong{display:block;overflow-wrap:anywhere;font-size:12px}
+.review-eval{display:block;font-size:24px;color:var(--accent);margin:8px 0}
+.review-moves-title{margin-top:20px}
+.import-review-moves{display:flex;flex-wrap:wrap;gap:5px;max-height:240px;overflow:auto;margin-top:10px}
+.import-review-moves button{border:1px solid var(--line);background:#202722;color:var(--text);border-radius:5px;padding:6px 8px;font-size:11px}
+.import-review-moves button.active{border-color:var(--accent);background:var(--accent-dark)}
+/* Persistent source/destination marking for a queued premove. */
+#board .square-premove-from{box-shadow:inset 0 0 0 4px #e7c65b!important;background-image:linear-gradient(#e7c65b55,#e7c65b55)!important}
+#board .square-premove-to{box-shadow:inset 0 0 0 4px #8fcb79!important;background-image:linear-gradient(#8fcb7955,#8fcb7955)!important}
+#board .square-premove-from:after,#board .square-premove-to:after{content:"";position:absolute;inset:0;pointer-events:none}
+@media(max-width:760px){.import-hub{grid-template-columns:1fr}.import-controls{flex-wrap:wrap}.import-pgn-controls{grid-column:auto}.review-layout{grid-template-columns:1fr}.postgame-panel,.import-review,.import-hub{width:calc(100% - 20px);padding:14px}.move-tools{grid-template-columns:repeat(2,minmax(0,1fr))}.review-board-column{min-width:0}}
+@media(max-width:420px){.import-controls>*{min-width:0}.import-controls select,.import-controls input{width:100%;flex-basis:100%}.postgame-head,.review-top{align-items:flex-start}.postgame-actions>*{flex:1}.review-nav .button{padding:8px 7px;font-size:10px}}
