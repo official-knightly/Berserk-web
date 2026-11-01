@@ -168,6 +168,7 @@
     var last = verbose.length ? verbose[verbose.length - 1] : null;
     var record = {
       san: String(move || "").replace(/^Berserk:\\s*/, ""),
+      ply: verbose.length - 1,
       side: moverSide,
       label: label,
       accuracy: moveAccuracy,
@@ -200,8 +201,7 @@
     var reviewed = {};
     reviewRecords.forEach(function (record) {
       // Match by side and SAN; newest matching review wins.
-      var key = record.side + ":" + record.san;
-      reviewed[key] = record;
+      reviewed[record.ply] = record;
     });
     movesElement.textContent = "";
     if (!verbose.length) {
@@ -218,8 +218,7 @@
           var cell = document.createElement("span");
           cell.className = "review-move-cell";
           if (!move) { row.appendChild(cell); return; }
-          var side = move.color;
-          var record = reviewed[side + ":" + move.san];
+          var record = reviewed[i + (move.color === "b" ? 1 : 0)];
           if (record) {
             var icon = document.createElement("img");
             icon.className = "move-quality-icon";
@@ -568,6 +567,27 @@
       if (game.undo()) undone = true;
     }
     if (!undone) return;
+    var remainingPlies = game.history().length;
+    reviewRecords = reviewRecords.filter(function (record) { return record.ply < remainingPlies; });
+    sideAccuracy = { w: { total: 0, count: 0 }, b: { total: 0, count: 0 } };
+    reviewRecords.forEach(function (record) {
+      if (Number.isFinite(record.accuracy)) {
+        sideAccuracy[record.side].total += record.accuracy;
+        sideAccuracy[record.side].count++;
+      }
+    });
+    humanAccuracyTotal = 0;
+    humanAccuracyCount = 0;
+    reviewRecords.forEach(function (record) {
+      if (record.side === humanSide && Number.isFinite(record.accuracy)) {
+        humanAccuracyTotal += record.accuracy;
+        humanAccuracyCount++;
+      }
+    });
+    accuracyValue.textContent = humanAccuracyCount
+      ? Math.round(humanAccuracyTotal / humanAccuracyCount) + "%"
+      : "—";
+    updateSideAccuracy();
     renderGame();
     if (gameStarted && game.turn() !== humanSide && !game.game_over()) makeEngineMove();
     else if (gameStarted && !game.game_over()) prepareHumanBaseline();
