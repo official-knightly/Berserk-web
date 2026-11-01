@@ -84,7 +84,16 @@
     </aside>
   </main>
   <section id="postgame-panel" class="postgame-panel" hidden><div class="postgame-head"><div><p class="eyebrow">GAME COMPLETE</p><h2 id="postgame-result">Game finished</h2><p id="postgame-detail">Your game is ready to review.</p></div><button id="close-postgame" class="button secondary">Close</button></div><div class="postgame-stats"><div><span>White accuracy</span><strong id="report-white-accuracy">—</strong></div><div><span>Black accuracy</span><strong id="report-black-accuracy">—</strong></div><div><span>Total moves</span><strong id="report-moves">0</strong></div><div><span>Move quality</span><strong id="report-rating">—</strong></div></div><div class="postgame-actions"><button id="analyze-postgame" class="button">Analyze this game</button><button id="copy-postgame-pgn" class="button secondary">Copy PGN</button><button id="download-postgame-pgn" class="button secondary">Download PGN</button></div></section>
-  <section id="import-review" class="import-review" hidden><div class="review-top"><div><p class="eyebrow">BERSERK GAME REVIEW</p><h2 id="import-review-title">Imported game</h2></div><button id="close-import-review" class="button secondary">Close review</button></div><div class="review-layout"><div class="review-board-column"><div class="board-shell review-board-shell"><div id="review-board"></div><svg id="review-arrow-layer" viewBox="0 0 8 8" preserveAspectRatio="none" aria-hidden="true"></svg></div><div class="review-nav"><button id="review-prev" class="button secondary">← Previous</button><span id="review-ply-label">Start position</span><button id="review-next" class="button secondary">Next →</button></div></div><div class="review-details">
+  <section id="import-review" class="import-review" hidden><div class="review-top"><div><p class="eyebrow">BERSERK GAME REVIEW</p><h2 id="import-review-title">Imported game</h2></div><button id="close-import-review" class="button secondary">Close review</button></div><div class="review-layout"><div class="review-board-column">
+        <div class="review-board-topline"><div><p class="eyebrow">POSITION EXPLORER</p><strong>Game board</strong></div><span id="review-ply-label" class="review-ply-chip">Start position</span></div>
+        <div class="board-shell review-board-shell"><div id="review-board"></div><svg id="review-arrow-layer" viewBox="0 0 8 8" preserveAspectRatio="none" aria-hidden="true"></svg></div>
+        <div class="review-nav"><button id="review-prev" class="button secondary">← Previous</button><button id="review-next" class="button secondary">Next →</button></div>
+        <section class="review-graph-card" aria-labelledby="review-graph-title">
+          <div class="review-graph-heading"><div><p class="eyebrow">GAME MOMENTUM</p><h3 id="review-graph-title">Evaluation timeline</h3></div><span id="review-graph-state">Run full analysis to build graph</span></div>
+          <div class="review-graph-wrap"><svg id="review-eval-graph" viewBox="0 0 720 150" role="img" aria-label="Evaluation graph will appear after full game analysis"><line x1="12" y1="75" x2="708" y2="75" class="eval-zero-line"/><text x="12" y="17" class="eval-axis-label">White advantage</text><text x="708" y="17" text-anchor="end" class="eval-axis-label">Black advantage</text><path id="review-eval-area" d="" class="eval-area"></path><polyline id="review-eval-line" points="" class="eval-line"></polyline></svg></div>
+          <div class="review-graph-legend"><span><i></i> Position evaluation</span><span id="review-graph-plies">0 positions analyzed</span></div>
+        </section>
+      </div><div class="review-details">
       <div class="review-tabs" role="tablist" aria-label="Game review sections">
         <button class="review-tab active" type="button" data-tab-group="review" data-tab-target="overview" role="tab" aria-selected="true">Overview</button>
         <button class="review-tab" type="button" data-tab-group="review" data-tab-target="moves" role="tab" aria-selected="false">Moves</button>
@@ -94,15 +103,17 @@
         <button class="review-tab" type="button" data-tab-group="review" data-tab-target="opening" role="tab" aria-selected="false">Opening</button>
       </div>
       <section class="review-tab-panel active" data-tab-panel="review:overview">
-        <div class="review-stat-grid"><div><span>White</span><strong id="review-white">—</strong></div><div><span>Black</span><strong id="review-black">—</strong></div><div><span>Result</span><strong id="review-result">—</strong></div><div><span>Opening</span><strong id="review-opening">Imported game</strong></div></div>
-        <p class="tab-hint">Use the move list to jump to any position, then run Berserk analysis for engine-backed evaluations.</p>
+        <div class="review-overview-hero"><div><span class="eyebrow">MATCH SUMMARY</span><h3>Game overview</h3><p class="tab-hint">A quick read on the players, result and analysis progress.</p></div><span class="review-result-chip" id="review-result-chip">Result · —</span></div>
+        <div class="review-stat-grid review-summary-grid"><div><span>White</span><strong id="review-white">—</strong></div><div><span>Black</span><strong id="review-black">—</strong></div><div><span>Result</span><strong id="review-result">—</strong></div><div><span>Opening</span><strong id="review-opening">Imported game</strong></div></div>
+        <div class="review-section-block"><div class="review-section-title"><span>ANALYSIS SNAPSHOT</span><span id="review-analysis-state">Not analyzed yet</span></div><div class="review-stat-grid review-performance-grid"><div><span>White accuracy</span><strong id="review-white-snapshot">—</strong></div><div><span>Black accuracy</span><strong id="review-black-snapshot">—</strong></div><div><span>Moves reviewed</span><strong id="review-reviewed-count">0</strong></div></div></div>
+        <p class="tab-hint">Select any move to inspect its position. Run full game analysis to calculate move grades, accuracy estimates and the evaluation timeline.</p>
       </section>
       <section class="review-tab-panel" data-tab-panel="review:moves" hidden>
-        <div class="panel-title review-moves-title">Complete move list</div>
+        <div class="review-section-title"><span>MOVE-BY-MOVE REPORT</span><span>Classification</span></div><div class="panel-title review-moves-title">Complete move list</div>
         <div id="import-review-moves" class="import-review-moves"></div>
       </section>
       <section class="review-tab-panel" data-tab-panel="review:engine" hidden>
-        <div class="panel-title">Position evaluation</div><strong id="review-eval" class="review-eval">Not analyzed</strong>
+        <div class="review-section-title"><span>ENGINE VERDICT</span><span>BERSERK</span></div><div class="engine-eval-card"><span>Current position</span><strong id="review-eval" class="review-eval">Not analyzed</strong></div>
         <p id="review-best" class="quality-detail">Select Analyze position to run Berserk.</p>
         <div class="review-engine-actions"><button id="review-analyze-position" class="button">Analyze position</button><button id="review-analyze-game" class="button secondary">Analyze full game</button></div>
       </section>
@@ -114,7 +125,7 @@
         <div id="review-mistake-summary" class="tab-hint">Inaccuracies, mistakes and blunders will be listed here after full-game analysis.</div>
       </section>
       <section class="review-tab-panel" data-tab-panel="review:opening" hidden>
-        <div class="panel-title">Opening information</div><strong id="review-opening-detail">Not identified</strong>
+        <div class="review-section-title"><span>OPENING EXPLORER</span><span>PGN METADATA</span></div><strong id="review-opening-detail">Not identified</strong>
         <p class="tab-hint">Opening names are shown when they are included in the imported PGN metadata.</p>
       </section>
     </div></div></section>
