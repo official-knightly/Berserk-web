@@ -32,6 +32,7 @@
   var qualityLabel = $("quality-label");
   var qualityMove = $("quality-move");
   var qualityDetail = $("quality-detail");
+  var qualityIcon = $("quality-icon");
   var accuracyValue = $("accuracy-value");
   var evaluationValue = $("evaluation-value");
   var evaluationIndicator = $("evaluation-indicator");
@@ -125,6 +126,7 @@
     if (beforeWhite === null || afterWhite === null ||
         !Number.isFinite(beforeWhite) || !Number.isFinite(afterWhite)) {
       qualityLabel.textContent = "Not rated";
+      if (qualityIcon) qualityIcon.hidden = true;
       qualityDetail.textContent = "Berserk could not compare both positions.";
       return;
     }
@@ -142,6 +144,19 @@
     else if (loss <= 200) label = "Mistake";
     else label = "Blunder";
     qualityLabel.textContent = label;
+    if (qualityIcon) {
+      var iconFiles = {
+        "Best": "cls-great.svg",
+        "Excellent": "cls-excellent.svg",
+        "Good": "cls-good.svg",
+        "Inaccuracy": "cls-inaccuracy.svg",
+        "Mistake": "cls-mistake.svg",
+        "Blunder": "cls-blunder.svg"
+      };
+      qualityIcon.src = "./assets/classification/" + (iconFiles[label] || "cls-good.svg");
+      qualityIcon.alt = label + " move classification";
+      qualityIcon.hidden = false;
+    }
     qualityDetail.textContent = "Eval: " + formatEval(beforeWhite) + " → " + formatEval(afterWhite) +
       " · loss " + Math.round(loss) + " cp" +
       (moveAccuracy === undefined ? "" : " · accuracy " + Math.round(moveAccuracy) + "%");
@@ -434,6 +449,7 @@
     evaluationValue.textContent = "—";
     if (evaluationIndicator) evaluationIndicator.style.left = "50%";
     qualityLabel.textContent = "Waiting for a move";
+    if (qualityIcon) qualityIcon.hidden = true;
     qualityMove.textContent = "—";
     qualityDetail.textContent = "Berserk will compare your move with the evaluation before and after it.";
     game.reset();
@@ -545,40 +561,54 @@
   });
 
   var leftArrowStart = null;
-  $("board").addEventListener("contextmenu", function (event) {
-    event.preventDefault();
+  function clearBoardArrows() {
     arrows = [];
     arrowStart = null;
     arrowPendingStart = null;
     leftArrowStart = null;
     renderArrows();
+  }
+  function squareFromEvent(event) {
+    var squareElement = event.target && event.target.closest
+      ? event.target.closest("[data-square]")
+      : null;
+    var namedSquare = squareElement && squareElement.getAttribute("data-square");
+    return namedSquare && /^[a-h][1-8]$/.test(namedSquare)
+      ? namedSquare
+      : squareAtPointer(event);
+  }
+  $("board").addEventListener("contextmenu", function (event) {
+    event.preventDefault();
+    clearBoardArrows();
   });
-  $("board").addEventListener("pointerdown", function (event) {
+  // Use mouseup (rather than pointerup) for broad compatibility with the
+  // mouse handlers used internally by chessboard.js.
+  $("board").addEventListener("mousedown", function (event) {
     if (event.button === 2) {
       event.preventDefault();
-      arrows = [];
-      arrowStart = null;
-      arrowPendingStart = null;
-      leftArrowStart = null;
-      renderArrows();
+      clearBoardArrows();
       return;
     }
     if (event.button !== 0) return;
-    var square = squareAtPointer(event);
-    // Keep normal piece dragging for occupied squares. Left-dragging from an
-    // empty square draws an annotation arrow instead of starting a chess move.
-    if (square && !game.get(square)) leftArrowStart = square;
+    var square = squareFromEvent(event);
+    // Empty-square drag draws an arrow. Hold Shift to draw from an occupied
+    // square without confusing a normal piece drag with an annotation.
+    if (square && (!game.get(square) || event.shiftKey)) {
+      leftArrowStart = square;
+      event.preventDefault();
+    }
   });
-  window.addEventListener("pointerup", function (event) {
+  window.addEventListener("mouseup", function (event) {
     if (event.button !== 0 || !leftArrowStart) return;
     var from = leftArrowStart;
-    var to = squareAtPointer(event);
+    var to = squareFromEvent(event);
     leftArrowStart = null;
     if (to && to !== from) {
       arrows.push({ from: from, to: to });
       renderArrows();
     }
   });
+  window.addEventListener("blur", function () { leftArrowStart = null; });
   $("clear-arrows-btn").addEventListener("click", function () {
     arrows = [];
     arrowStart = null;

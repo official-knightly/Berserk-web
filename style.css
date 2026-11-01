@@ -33,3 +33,12 @@
 .play-area > .review-card{max-width:680px;margin:0 auto 14px;width:100%}
 .review-card .analysis-metric strong{display:block}
 .review-card .evaluation-track{cursor:default}
+
+
+/* Separate move-classification and accuracy/evaluation panels. */
+.play-area > .review-card,.play-area > .accuracy-card{max-width:680px;margin:0 auto 12px;width:100%}
+.quality-classification{display:flex;align-items:center;gap:9px;min-width:0}
+.classification-icon{width:28px;height:28px;object-fit:contain;flex:0 0 28px}
+.classification-icon[hidden]{display:none}
+.quality-heading #quality-label{font-size:17px}
+.accuracy-card .analysis-metrics{margin-top:2px}
