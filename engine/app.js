@@ -248,6 +248,19 @@
     pendingEngineReview = null;
   }
 
+  var lastPremoveHighlight = null;
+  var manualOutcome = null;
+  function renderPremoveHighlight() {
+    var root = $("board");
+    if (!root) return;
+    root.querySelectorAll(".square-premove-from,.square-premove-to").forEach(function (el) { el.classList.remove("square-premove-from","square-premove-to"); });
+    if (!lastPremoveHighlight) return;
+    var from = root.querySelector(".square-" + lastPremoveHighlight.from);
+    var to = root.querySelector(".square-" + lastPremoveHighlight.to);
+    if (from) from.classList.add("square-premove-from");
+    if (to) to.classList.add("square-premove-to");
+  }
+
   function applyPremove() {
     if (!pendingPremove || !gameStarted || engineBusy || game.turn() !== humanSide || game.game_over()) return false;
     var queued = pendingPremove;
@@ -353,7 +366,7 @@
   }
 
   function renderGame() {
-    if (board) board.position(game.fen(), false);
+    if (board) board.position(game.fen(), false);\n    renderPremoveHighlight();
     var outcome = finalMessage();
     turnLabel.textContent = outcome ? outcome : (engineBusy ? "Berserk is thinking" : (game.turn() === "w" ? "White to move" : "Black to move"));
     moveCount.textContent = "Move " + (Math.floor(game.history().length / 2) + 1);
@@ -646,7 +659,7 @@
     onDrop: function (source, target) {
       if (!gameStarted || game.game_over()) return "snapback";
       if (engineBusy) {
-        pendingPremove = { from: source, to: target, promotion: "q" };
+        pendingPremove = { from: source, to: target, promotion: "q" };\n        lastPremoveHighlight = { from: source, to: target };\n        renderPremoveHighlight();
         premoveStatus.textContent = "Premove queued: " + source + " → " + target;
         return "snapback";
       }
@@ -748,6 +761,45 @@
   $("start-btn").addEventListener("click", startGame);
   $("new-btn").addEventListener("click", startGame);
   $("undo-btn").addEventListener("click", undoTurn);
+  function showPostgame(resultText, detail) {
+    var panel = $("postgame-panel");
+    if (!panel) return;
+    $("postgame-result").textContent = resultText;
+    $("postgame-detail").textContent = detail || "The game is complete. Review the moves or export the PGN.";
+    panel.hidden = false;
+    panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+  function currentPgn() {
+    var pgn = game.pgn({ max_width: 80, newline: "\\n" });
+    if (!pgn) pgn = '[Event "Berserk Web"]\\n[Result "*"]\\n\\n*';
+    return pgn;
+  }
+  $("resign-btn").addEventListener("click", function () {
+    if (!gameStarted || game.game_over() || manualOutcome) return;
+    if (!window.confirm("Resign this game?")) return;
+    turnToken++; engineBusy = false; pendingPremove = null;
+    manualOutcome = (humanSide === "w" ? "Black" : "White") + " wins by resignation";
+    renderGame(); showPostgame(manualOutcome, "You resigned. The full move list is ready for analysis.");
+  });
+  $("draw-btn").addEventListener("click", function () {
+    if (!gameStarted || game.game_over() || manualOutcome) return;
+    if (!window.confirm("Offer a draw to Berserk? Accepting will end this local game as a draw by agreement.")) return;
+    turnToken++; engineBusy = false; pendingPremove = null;
+    manualOutcome = "Draw by agreement"; renderGame(); showPostgame(manualOutcome, "Draw agreed. You can still analyze every played move.");
+  });
+  $("close-postgame").addEventListener("click", function () { $("postgame-panel").hidden = true; });
+  $("analyze-postgame").addEventListener("click", function () {
+    window.dispatchEvent(new CustomEvent("berserk:open-review", { detail: { pgn: currentPgn(), title: "Berserk game" } }));
+  });
+  $("copy-postgame-pgn").addEventListener("click", function () {
+    var pgn = currentPgn();
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(pgn).then(function(){ $("postgame-detail").textContent = "PGN copied to clipboard."; }).catch(function(){ window.prompt("Copy your PGN:",pgn); });
+    else window.prompt("Copy your PGN:",pgn);
+  });
+  $("download-postgame-pgn").addEventListener("click", function () {
+    var blob = new Blob([currentPgn()], { type: "application/x-chess-pgn" });
+    var url = URL.createObjectURL(blob); var link = document.createElement("a"); link.href=url; link.download="berserk-game.pgn"; link.click(); URL.revokeObjectURL(url);
+  });
 
   $("hint-btn").addEventListener("click", async function () {
     if (!engineReady || !gameStarted || engineBusy || game.game_over()) {
