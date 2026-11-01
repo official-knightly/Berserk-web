@@ -560,7 +560,7 @@
     qualityMove.textContent = "—";
     qualityDetail.textContent = "Berserk will compare your move with the evaluation before and after it.";
     game.reset();
-    manualResult = null; manualOutcome = null; activeGamePgn = ""; importedGame = false; premoveHistory = []; lastHumanWasPremove = false; lastPremoveHighlight = null;
+    manualResult = null; manualOutcome = null; activeGamePgn = ""; importedGame = false; premoveHistory = []; lastHumanWasPremove = false; lastPremoveHighlight = null; reportVisible = false;
     if ($("postgame-panel")) $("postgame-panel").hidden = true;
     arrows = [];
     arrowStart = null;
@@ -663,7 +663,7 @@
   }
   function getPgn() {
     if (activeGamePgn) return activeGamePgn;
-    try { return game.pgn({ max_width: 80, newline_char: "\n" }) + (manualResult ? "\n\n[Result \"" + (manualResult.indexOf("1-0")>=0?"1-0":manualResult.indexOf("0-1")>=0?"0-1":"1/2-1/2") + "\"]" : ""); }
+    try { var result = manualResult ? (manualResult.indexOf("Black wins")===0 ? "0-1" : manualResult.indexOf("White wins")===0 ? "1-0" : "1/2-1/2") : (game.in_checkmate() ? (game.turn()==="w"?"0-1":"1-0") : game.in_draw() ? "1/2-1/2" : "*"); game.header("Result", result); return game.pgn({ max_width: 80, newline_char: "\n" }); }
     catch (_) { return game.pgn(); }
   }
   function parseImportedPgn(pgn, source) {
