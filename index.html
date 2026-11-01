@@ -12,6 +12,13 @@
     <a class="brand" href="#"><span class="brand-mark">B</span><span>BERSERK<span class="muted"> / ENGINE LAB</span></span></a>
     <span class="status"><i id="status-dot"></i><span id="engine-status">Engine not loaded</span></span>
   </header>
+
+  <section class="import-hub" aria-label="Import a game for analysis">
+    <div class="import-copy"><p class="eyebrow">GAME LIBRARY</p><h2>Review any game</h2><p>Import a public game by username, paste PGN, or load a PGN file.</p></div>
+    <div class="import-controls"><select id="import-platform" aria-label="Game platform"><option value="chesscom">Chess.com</option><option value="lichess">Lichess</option><option value="worldchess">WorldChess</option></select><input id="import-username" type="text" autocomplete="off" placeholder="Enter username"><button id="import-user-btn" class="button">Find games</button></div>
+    <div class="import-controls import-pgn-controls"><textarea id="import-pgn" rows="2" placeholder="Paste PGN here…"></textarea><label class="button secondary file-label">Choose PGN<input id="import-file" type="file" accept=".pgn,.txt,text/plain" hidden></label><button id="import-pgn-btn" class="button secondary">Load PGN</button></div>
+    <p id="import-status" class="import-status" role="status">Chess.com and Lichess public game archives are supported. WorldChess games can be loaded by PGN.</p><div id="import-results" class="import-results"></div>
+  </section>
   <main class="layout">
     <section class="play-area">
       <div class="board-heading"><div><p class="eyebrow">ANALYSIS BOARD</p><h1>Play against Berserk</h1></div><div class="board-actions"><button id="hint-btn" class="button hint-button">✦ Hint · best move</button><button id="clear-arrows-btn" class="button secondary">Clear arrows</button><button id="flip-btn" class="button secondary">Flip board</button></div></div>
@@ -45,7 +52,7 @@
       <div class="board-footer"><span id="turn-label">White to move</span><span id="move-count">Move 1</span></div>
       <p id="premove-status" class="premove-status" aria-live="polite"></p>
       <p class="board-hint">Left-drag from an empty square to draw an arrow · Hold Shift while left-dragging from a piece to draw from it · Right-click to clear arrows · Drag your piece while Berserk thinks to queue a premove.</p>
-      <div class="move-tools"><button id="undo-btn" class="button secondary">Undo move</button><button id="new-btn" class="button">New game</button></div>
+      <div class="move-tools"><button id="undo-btn" class="button secondary">Undo move</button><button id="resign-btn" class="button secondary">Resign</button><button id="draw-btn" class="button secondary">Offer draw</button><button id="new-btn" class="button">New game</button></div>
       <div class="moves-panel review-moves-panel"><div class="moves-panel-heading"><div class="panel-title">Move review</div><span id="review-move-count" class="review-count">0 moves</span></div><div id="moves" class="moves-list">Your game moves will appear here.</div></div>
       <p id="hint-status" class="hint-status" aria-live="polite">Tap Hint to ask Berserk for the strongest move in the current position.</p>
     </section>
@@ -71,10 +78,13 @@
       <div class="info-card"><div class="panel-title">Session</div><div class="session-row"><span>Player</span><strong id="player-side">White</strong></div><div class="session-row"><span>Berserk</span><strong id="engine-side">Black</strong></div><div class="session-row"><span>Think time</span><strong id="session-time">1.0 sec</strong></div><div class="session-row"><span>Game status</span><strong id="game-status">Ready</strong></div></div>
     </aside>
   </main>
+  <section id="postgame-panel" class="postgame-panel" hidden><div class="postgame-head"><div><p class="eyebrow">GAME COMPLETE</p><h2 id="postgame-result">Game finished</h2><p id="postgame-detail">Your game is ready to review.</p></div><button id="close-postgame" class="button secondary">Close</button></div><div class="postgame-actions"><button id="analyze-postgame" class="button">Analyze this game</button><button id="copy-postgame-pgn" class="button secondary">Copy PGN</button><button id="download-postgame-pgn" class="button secondary">Download PGN</button></div></section>
+  <section id="import-review" class="import-review" hidden><div class="review-top"><div><p class="eyebrow">BERSERK GAME REVIEW</p><h2 id="import-review-title">Imported game</h2></div><button id="close-import-review" class="button secondary">Close review</button></div><div class="review-layout"><div class="review-board-column"><div class="board-shell review-board-shell"><div id="review-board"></div></div><div class="review-nav"><button id="review-prev" class="button secondary">← Previous</button><span id="review-ply-label">Start position</span><button id="review-next" class="button secondary">Next →</button></div></div><div class="review-details"><div class="review-stat-grid"><div><span>White</span><strong id="review-white">—</strong></div><div><span>Black</span><strong id="review-black">—</strong></div><div><span>Result</span><strong id="review-result">—</strong></div><div><span>Opening</span><strong id="review-opening">Imported game</strong></div></div><div class="panel-title">Position evaluation</div><strong id="review-eval" class="review-eval">Not analyzed</strong><p id="review-best" class="quality-detail">Select Analyze position to run Berserk.</p><button id="review-analyze-position" class="button">Analyze position</button><button id="review-analyze-game" class="button secondary">Analyze full game</button><div class="panel-title review-moves-title">Moves</div><div id="import-review-moves" class="import-review-moves"></div></div></div></section>
   <footer>BERSERK ENGINE LAB <span>·</span> Built for testing and play</footer>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
   <script src="./engine/engine.js"></script>
   <script src="./engine/app.js"></script>
+  <script src="./engine/postgame.js"></script>
 </body></html>
