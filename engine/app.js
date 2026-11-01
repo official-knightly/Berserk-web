@@ -657,7 +657,7 @@
     $("report-black-accuracy").textContent = $("black-accuracy").textContent;
     $("report-moves").textContent = String(Math.ceil(game.history().length / 2));
     var values = [Number.parseInt($("white-accuracy").textContent,10),Number.parseInt($("black-accuracy").textContent,10)].filter(Number.isFinite);
-    $("report-rating").textContent = values.length ? String(Math.round(values.reduce(function(a,b){return a+b;},0)/values.length*35)) : "—";
+    $("report-rating").textContent = values.length ? Math.round(values.reduce(function(a,b){return a+b;},0)/values.length) + "%" : "—";
     panel.hidden = false;
     reportVisible = true;
   }
