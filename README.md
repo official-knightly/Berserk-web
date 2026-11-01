@@ -18,60 +18,15 @@ Open `http://localhost:8000`. The checked-in WebAssembly bundle is loaded from `
 - `style.css` — styling
 - `engine/app.js` — chessboard and game UI
 - `engine/engine.js` — promise-based Web Worker adapter used by this site
-- `engine/engine-worker.js` — structured-message WASM worker
+- `engine/engine-worker.js` — structured-message WASM worker used by this site
 - `engine/uci-worker.js` — UCI-compatible module worker for browser integrations
 - `engine/berserk.js` and `engine/berserk_bg.wasm` — matching wasm-bindgen loader and WASM binary
-- `engine.ts` — standalone TypeScript adapter for other web apps that want to use the hosted Berserk engine without copying the WASM bundle into their own repository
 
-The WASM file is tracked with Git LFS. A normal Git checkout may show the small LFS pointer instead of the actual binary. The adapter and worker use GitHub's LFS media endpoint to download the real WASM file.
+The WASM file is tracked with Git LFS. Do not replace it with the 133-byte LFS pointer text or a WASM binary generated for a different wasm-bindgen interface.
 
-## Use Berserk in another web app (no local engine folder required)
+## Integrate Berserk into a browser extension
 
-Copy the root-level `engine.ts` file into your TypeScript web project. You do **not** need to copy the 64.5 MB WASM file, `berserk.js`, or an `engine/` directory into the consuming project.
-
-The adapter loads the official worker from this repository through a same-origin Blob worker bootstrap. The official worker then imports its matching `berserk.js` loader and downloads the WASM binary from the GitHub LFS media URL.
-
-Example:
-
-```ts
-import { engine } from "./engine";
-
-const unsubscribe = engine.subscribe(({ status, progress, error }) => {
-  console.log("Berserk:", status, Math.round(progress * 100) + "%", error ?? "");
-});
-
-// Six-field FEN. This is the normal starting chess position.
-const startFen =
-  "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-
-try {
-  const result = await engine.search(startFen, 1000, 3);
-
-  console.log("Best move:", result.bestmove);
-  console.log("Depth:", result.depth);
-  console.log("Candidates:", result.candidates);
-} catch (error) {
-  console.error("Berserk failed:", error);
-}
-
-// Call this when the page/component no longer needs the engine.
-unsubscribe();
-engine.terminate();
-```
-
-### Integration notes
-
-- `engine.search(fen, milliseconds, multiPV)` starts the engine automatically if it has not started yet.
-- Search time is clamped to 100–10,000 ms and MultiPV is clamped to 1–8.
-- The first load requires an internet connection to fetch the official worker, JavaScript loader, and WASM binary. The browser may cache these resources.
-- Serve the app over HTTPS (or localhost). The app's Content Security Policy must permit a `blob:` worker and requests/imports from `raw.githubusercontent.com` and `media.githubusercontent.com` as applicable to its `worker-src`, `script-src`, and `connect-src` rules.
-- Browser extensions can have stricter remote-code policies. For an extension, package the worker and loader with the extension if its policy does not permit remotely imported worker modules.
-
-**Important repository distinction:** the consuming app does not need an `engine/` folder, but the `engine/` directory in this Berserk-web repository must remain. The hosted worker imports `engine/berserk.js`, and that loader needs to stay alongside the published WASM asset. Do not delete or move those canonical files.
-
-## Integrate Berserk as a UCI worker
-
-For integrations that need a UCI message interface, use `engine/uci-worker.js`. It accepts standard UCI strings through `postMessage` and replies with UCI strings. It supports:
+The UCI worker accepts standard UCI strings through `postMessage` and replies with UCI strings. It supports:
 
 - `uci`, `isready`, `ucinewgame`
 - `position startpos [moves ...]`
@@ -79,7 +34,7 @@ For integrations that need a UCI message interface, use `engine/uci-worker.js`. 
 - `setoption name MultiPV value N` (1–8)
 - `go movetime N`, `go depth N`, and `go nodes N`
 
-Example from an extension page or another module-capable browser context where the worker assets are packaged or served locally:
+Example from an extension page or another module-capable browser context:
 
 ```js
 const worker = new Worker(
