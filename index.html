@@ -10,16 +10,21 @@
 <body>
   <header class="topbar">
     <a class="brand" href="#"><span class="brand-mark">B</span><span>BERSERK<span class="muted"> / ENGINE LAB</span></span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <button class="nav-link active" type="button" data-view-target="play">Play</button>
+      <button class="nav-link" type="button" data-view-target="analysis">Analysis</button>
+      <button class="nav-link" type="button" data-view-target="live">Live games</button>
+    </nav>
     <span class="status"><i id="status-dot"></i><span id="engine-status">Engine not loaded</span></span>
   </header>
 
-  <section class="import-hub" aria-label="Import a game for analysis">
+  <section class="import-hub" data-app-view="analysis" aria-label="Import a game for analysis" hidden>
     <div class="import-copy"><p class="eyebrow">GAME LIBRARY</p><h2>Review any game</h2><p>Import a public game by username, paste PGN, or load a PGN file.</p></div>
     <div class="import-controls"><select id="import-platform" aria-label="Game platform"><option value="chesscom">Chess.com</option><option value="lichess">Lichess</option><option value="worldchess">WorldChess</option></select><input id="import-username" type="text" autocomplete="off" placeholder="Enter username"><button id="import-user-btn" class="button">Find games</button></div>
     <div class="import-controls import-pgn-controls"><textarea id="import-pgn" rows="2" placeholder="Paste PGN here…"></textarea><label class="button secondary file-label">Choose PGN<input id="import-file" type="file" accept=".pgn,.txt,text/plain" hidden></label><button id="import-pgn-btn" class="button secondary">Load PGN</button></div>
     <p id="import-status" class="import-status" role="status">Chess.com and Lichess public game archives are supported. WorldChess games can be loaded by PGN.</p><div id="import-results" class="import-results"></div>
   </section>
-  <main class="layout">
+  <main class="layout" data-app-view="play">
     <section class="play-area">
       <div class="board-heading"><div><p class="eyebrow">ANALYSIS BOARD</p><h1>Play against Berserk</h1></div><div class="board-actions"><button id="hint-btn" class="button hint-button">✦ Hint · best move</button><button id="clear-arrows-btn" class="button secondary">Clear arrows</button><button id="flip-btn" class="button secondary">Flip board</button></div></div>
       <div class="info-card review-card">
@@ -78,15 +83,80 @@
       <div class="info-card"><div class="panel-title">Session</div><div class="session-row"><span>Player</span><strong id="player-side">White</strong></div><div class="session-row"><span>Berserk</span><strong id="engine-side">Black</strong></div><div class="session-row"><span>Think time</span><strong id="session-time">1.0 sec</strong></div><div class="session-row"><span>Game status</span><strong id="game-status">Ready</strong></div></div>
     </aside>
   </main>
-  <section id="postgame-panel" class="postgame-panel" hidden><div class="postgame-head"><div><p class="eyebrow">GAME COMPLETE</p><h2 id="postgame-result">Game finished</h2><p id="postgame-detail">Your game is ready to review.</p></div><button id="close-postgame" class="button secondary">Close</button></div><div class="postgame-stats"><div><span>White accuracy</span><strong id="report-white-accuracy">—</strong></div><div><span>Black accuracy</span><strong id="report-black-accuracy">—</strong></div><div><span>Total moves</span><strong id="report-moves">0</strong></div><div><span>Move quality</span><strong id="report-rating">—</strong></div></div><div class="postgame-actions"><button id="analyze-postgame" class="button">Analyze this game</button><button id="copy-postgame-pgn" class="button secondary">Copy PGN</button><button id="download-postgame-pgn" class="button secondary">Download PGN</button></div></section>
-  <section id="import-review" class="import-review" hidden><div class="review-top"><div><p class="eyebrow">BERSERK GAME REVIEW</p><h2 id="import-review-title">Imported game</h2></div><button id="close-import-review" class="button secondary">Close review</button></div><div class="review-layout"><div class="review-board-column"><div class="board-shell review-board-shell"><div id="review-board"></div></div><div class="review-nav"><button id="review-prev" class="button secondary">← Previous</button><span id="review-ply-label">Start position</span><button id="review-next" class="button secondary">Next →</button></div></div><div class="review-details"><div class="review-stat-grid"><div><span>White</span><strong id="review-white">—</strong></div><div><span>Black</span><strong id="review-black">—</strong></div><div><span>Result</span><strong id="review-result">—</strong></div><div><span>Opening</span><strong id="review-opening">Imported game</strong></div></div><div class="panel-title">Position evaluation</div><strong id="review-eval" class="review-eval">Not analyzed</strong><p id="review-best" class="quality-detail">Select Analyze position to run Berserk.</p><button id="review-analyze-position" class="button">Analyze position</button><button id="review-analyze-game" class="button secondary">Analyze full game</button><div class="panel-title review-moves-title">Moves</div><div id="import-review-moves" class="import-review-moves"></div></div></div></section>
+  <section id="postgame-panel" class="postgame-panel" data-app-view="play" hidden><div class="postgame-head"><div><p class="eyebrow">GAME COMPLETE</p><h2 id="postgame-result">Game finished</h2><p id="postgame-detail">Your game is ready to review.</p></div><button id="close-postgame" class="button secondary">Close</button></div><div class="postgame-stats"><div><span>White accuracy</span><strong id="report-white-accuracy">—</strong></div><div><span>Black accuracy</span><strong id="report-black-accuracy">—</strong></div><div><span>Total moves</span><strong id="report-moves">0</strong></div><div><span>Move quality</span><strong id="report-rating">—</strong></div></div><div class="postgame-actions"><button id="analyze-postgame" class="button">Analyze this game</button><button id="copy-postgame-pgn" class="button secondary">Copy PGN</button><button id="download-postgame-pgn" class="button secondary">Download PGN</button></div></section>
+  <section id="import-review" class="import-review" data-app-view="analysis" hidden><div class="review-top"><div><p class="eyebrow">BERSERK GAME REVIEW</p><h2 id="import-review-title">Imported game</h2></div><button id="close-import-review" class="button secondary">Close review</button></div><div class="review-layout"><div class="review-board-column"><div class="board-shell review-board-shell"><div id="review-board"></div></div><div class="review-nav"><button id="review-prev" class="button secondary">← Previous</button><span id="review-ply-label">Start position</span><button id="review-next" class="button secondary">Next →</button></div></div><div class="review-details">
+      <div class="review-tabs" role="tablist" aria-label="Game review sections">
+        <button class="review-tab active" type="button" data-tab-group="review" data-tab-target="overview" role="tab" aria-selected="true">Overview</button>
+        <button class="review-tab" type="button" data-tab-group="review" data-tab-target="moves" role="tab" aria-selected="false">Moves</button>
+        <button class="review-tab" type="button" data-tab-group="review" data-tab-target="engine" role="tab" aria-selected="false">Engine</button>
+        <button class="review-tab" type="button" data-tab-group="review" data-tab-target="accuracy" role="tab" aria-selected="false">Accuracy</button>
+        <button class="review-tab" type="button" data-tab-group="review" data-tab-target="mistakes" role="tab" aria-selected="false">Mistakes</button>
+        <button class="review-tab" type="button" data-tab-group="review" data-tab-target="opening" role="tab" aria-selected="false">Opening</button>
+      </div>
+      <section class="review-tab-panel active" data-tab-panel="review:overview">
+        <div class="review-stat-grid"><div><span>White</span><strong id="review-white">—</strong></div><div><span>Black</span><strong id="review-black">—</strong></div><div><span>Result</span><strong id="review-result">—</strong></div><div><span>Opening</span><strong id="review-opening-overview">Imported game</strong></div></div>
+        <p class="tab-hint">Use the move list to jump to any position, then run Berserk analysis for engine-backed evaluations.</p>
+      </section>
+      <section class="review-tab-panel" data-tab-panel="review:moves" hidden>
+        <div class="panel-title review-moves-title">Complete move list</div>
+        <div id="import-review-moves" class="import-review-moves"></div>
+      </section>
+      <section class="review-tab-panel" data-tab-panel="review:engine" hidden>
+        <div class="panel-title">Position evaluation</div><strong id="review-eval" class="review-eval">Not analyzed</strong>
+        <p id="review-best" class="quality-detail">Select Analyze position to run Berserk.</p>
+        <div class="review-engine-actions"><button id="review-analyze-position" class="button">Analyze position</button><button id="review-analyze-game" class="button secondary">Analyze full game</button></div>
+      </section>
+      <section class="review-tab-panel" data-tab-panel="review:accuracy" hidden>
+        <div class="review-stat-grid"><div><span>White accuracy</span><strong id="review-white-accuracy">—</strong></div><div><span>Black accuracy</span><strong id="review-black-accuracy">—</strong></div></div>
+        <p id="review-accuracy-summary" class="tab-hint">Accuracy summaries become available after a complete Berserk game review.</p>
+      </section>
+      <section class="review-tab-panel" data-tab-panel="review:mistakes" hidden>
+        <div id="review-mistake-summary" class="tab-hint">Inaccuracies, mistakes and blunders will be listed here after full-game analysis.</div>
+      </section>
+      <section class="review-tab-panel" data-tab-panel="review:opening" hidden>
+        <div class="panel-title">Opening information</div><strong id="review-opening-detail">Not identified</strong>
+        <p class="tab-hint">Opening names are shown when they are included in the imported PGN metadata.</p>
+      </section>
+    </div></div></section>
 
+
+<section class="live-workspace" data-app-view="live" hidden>
+    <div class="section-heading">
+      <div><p class="eyebrow">LIVE GAME TRACKER</p><h2>Watch a game with Berserk</h2><p class="section-subtitle">Find a public Lichess game by username, follow its moves, and ask Berserk for the strongest continuation.</p></div>
+      <span class="live-pill">PUBLIC LICHESS GAMES</span>
+    </div>
+    <div class="live-lookup">
+      <label for="live-username">Lichess username</label>
+      <div class="live-lookup-row"><input id="live-username" type="text" autocomplete="off" placeholder="Enter a Lichess username"><button id="live-find" class="button">Find current game</button><button id="live-stop" class="button secondary" disabled>Stop watching</button></div>
+      <p id="live-status" class="live-status" role="status">Only public Lichess current games are supported. Lichess may delay the latest moves for fair-play protection.</p>
+    </div>
+    <div class="live-layout">
+      <div class="live-board-column">
+        <div class="live-player-row"><span id="live-black-player">Black</span><span id="live-black-rating">—</span></div>
+        <div class="live-board-shell"><div id="live-board"></div><svg id="live-arrow-layer" viewBox="0 0 8 8" preserveAspectRatio="none" aria-hidden="true"></svg></div>
+        <div class="live-player-row"><span id="live-white-player">White</span><span id="live-white-rating">—</span></div>
+        <div class="live-board-controls"><button id="live-flip" class="button secondary">Flip board</button><button id="live-review" class="button secondary" disabled>Open full review</button></div>
+      </div>
+      <aside class="live-analysis-panel">
+        <div class="live-engine-heading"><img src="./assets/brand/berserk-emblem.png" alt="" class="live-engine-logo"><div><span class="eyebrow">POWERED BY</span><strong>Berserk Engine</strong><span id="live-engine-state">Waiting for a game</span></div></div>
+        <div class="live-best-card"><span>Best continuation</span><strong id="live-best-move">—</strong><span id="live-best-eval">Evaluation unavailable</span></div>
+        <div class="live-quality"><img id="live-quality-icon" alt="" hidden><div><span id="live-quality-label">Move quality</span><strong id="live-quality-detail">Waiting for the next move</strong></div></div>
+        <div class="live-pv"><span>Principal variation</span><p id="live-pv-line">—</p></div>
+        <div class="live-moves-heading"><strong>Live move list</strong><span id="live-move-count">0 plies</span></div>
+        <div id="live-moves" class="live-moves">Moves will appear here.</div>
+      </aside>
+    </div>
+  </section>
 
   <footer>BERSERK ENGINE LAB <span>·</span> Built for testing and play</footer>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
   <script src="./engine/engine.js"></script>
+  <script src="./engine/mobile-input.js"></script>
   <script src="./engine/app.js"></script>
   <script src="./engine/postgame.js"></script>
+  <script src="./engine/live.js"></script>
+  <script src="./engine/review-icons.js"></script>
+  <script src="./engine/navigation.js"></script>
 </body></html>
