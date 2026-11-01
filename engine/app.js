@@ -34,6 +34,7 @@
   var qualityDetail = $("quality-detail");
   var accuracyValue = $("accuracy-value");
   var evaluationValue = $("evaluation-value");
+  var evaluationIndicator = $("evaluation-indicator");
   var premoveStatus = $("premove-status");
   var humanAccuracyTotal = 0;
   var humanAccuracyCount = 0;
@@ -65,15 +66,20 @@
   function updateEvaluation(sideToMoveScore) {
     if (sideToMoveScore === null || !Number.isFinite(sideToMoveScore)) {
       evaluationValue.textContent = "—";
+      if (evaluationIndicator) evaluationIndicator.style.left = "50%";
       return;
     }
-    // Engine scores are from the side-to-move perspective; show White's POV.
+    // The score is from the side-to-move perspective; show White's POV.
     var whiteScore = game.turn() === "w" ? sideToMoveScore : -sideToMoveScore;
     evaluationValue.textContent = formatEval(whiteScore);
+    // Keep the visual scale readable: +/-5 pawns spans the full bar.
+    var clamped = Math.max(-500, Math.min(500, whiteScore));
+    var position = 50 - (clamped / 500) * 50;
+    if (evaluationIndicator) evaluationIndicator.style.left = position + "%";
   }
 
   function updateAccuracy(loss, countMove) {
-    if (loss === null || !Number.isFinite(loss)) return;
+    if (!accuracyValue || loss === null || !Number.isFinite(loss)) return;
     // A transparent approximation from centipawn loss, not an official platform metric.
     var moveAccuracy = Math.max(0, Math.min(100, 100 * Math.exp(-Math.max(0, loss) / 300)));
     if (countMove) {
@@ -408,6 +414,7 @@
     humanAccuracyCount = 0;
     accuracyValue.textContent = "—";
     evaluationValue.textContent = "—";
+    if (evaluationIndicator) evaluationIndicator.style.left = "50%";
     qualityLabel.textContent = "Waiting for a move";
     qualityMove.textContent = "—";
     qualityDetail.textContent = "Berserk will compare your move with the evaluation before and after it.";
