@@ -19,6 +19,7 @@
   var pendingPremove = null;
   var arrows = [];
   var arrowStart = null;
+  var arrowPendingStart = null;
 
   var engineStatus = $("engine-status");
   var statusDot = $("status-dot");
@@ -373,6 +374,8 @@
     pendingEngineReview = null;
     game.reset();
     arrows = [];
+    arrowStart = null;
+    arrowPendingStart = null;
     renderArrows();
     board.orientation(humanSide === "w" ? "white" : "black");
     board.start();
@@ -485,20 +488,38 @@
   });
   window.addEventListener("pointerup", function (event) {
     if (event.button !== 2 || !arrowStart) return;
+    var dragStart = arrowStart;
     var target = squareAtPointer(event);
-    if (target && target !== arrowStart) {
-      arrows.push({ from: arrowStart, to: target });
-      renderArrows();
-    }
     arrowStart = null;
+
+    // Right-click + drag draws immediately. Two right-clicks also draw an arrow,
+    // which works better on touchpads and when a short drag is difficult.
+    if (target && target !== dragStart) {
+      arrows.push({ from: dragStart, to: target });
+      arrowPendingStart = null;
+      renderArrows();
+      return;
+    }
+    if (!target) return;
+    if (arrowPendingStart && arrowPendingStart !== target) {
+      arrows.push({ from: arrowPendingStart, to: target });
+      arrowPendingStart = null;
+      renderArrows();
+    } else {
+      arrowPendingStart = target;
+    }
   });
   $("clear-arrows-btn").addEventListener("click", function () {
     arrows = [];
+    arrowStart = null;
+    arrowPendingStart = null;
     renderArrows();
   });
   window.addEventListener("keydown", function (event) {
     if (event.key === "Escape") {
       arrows = [];
+      arrowStart = null;
+      arrowPendingStart = null;
       renderArrows();
     }
   });
