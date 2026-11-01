@@ -100,6 +100,7 @@
     var queued = pendingPremove;
     pendingPremove = null;
     premoveStatus.textContent = "";
+    var beforeFen = game.fen();
     var move = game.move({ from: queued.from, to: queued.to, promotion: queued.promotion || "q" });
     if (!move) {
       premoveStatus.textContent = "Premove unavailable — the move is no longer legal.";
@@ -107,7 +108,7 @@
       return false;
     }
     lastHumanMove = move.san;
-    lastHumanBeforeFen = game.fen();
+    lastHumanBeforeFen = beforeFen;
     renderGame();
     makeEngineMove();
     return true;
@@ -451,10 +452,11 @@
         return "snapback";
       }
       if (game.turn() !== humanSide) return "snapback";
+      var beforeFen = game.fen();
       var move = game.move({ from: source, to: target, promotion: "q" });
       if (move === null) return "snapback";
       lastHumanMove = move.san;
-      lastHumanBeforeFen = game.fen();
+      lastHumanBeforeFen = beforeFen;
       renderGame();
       if (game.game_over()) return;
       makeEngineMove();
