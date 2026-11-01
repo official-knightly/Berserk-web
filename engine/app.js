@@ -538,6 +538,9 @@
     gameStarted = true;
     humanSide = chosenSide;
     pendingPremove = null;
+    lastPremoveHighlight = null;
+    premoveHistory = [];
+    renderPremoveHighlight();
     premoveStatus.textContent = "";
     analysisBaseline = null;
     analysisBaselineFen = null;
