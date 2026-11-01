@@ -37,6 +37,9 @@
   var evaluationValue = $("evaluation-value");
   var evaluationIndicator = $("evaluation-indicator");
   var premoveStatus = $("premove-status");
+  var hintStatus = $("hint-status");
+  var reviewRecords = [];
+  var sideAccuracy = { w: { total: 0, count: 0 }, b: { total: 0, count: 0 } };
   var humanAccuracyTotal = 0;
   var humanAccuracyCount = 0;
 
@@ -160,6 +163,83 @@
     qualityDetail.textContent = "Eval: " + formatEval(beforeWhite) + " → " + formatEval(afterWhite) +
       " · loss " + Math.round(loss) + " cp" +
       (moveAccuracy === undefined ? "" : " · accuracy " + Math.round(moveAccuracy) + "%");
+
+    var verbose = game.history({ verbose: true });
+    var last = verbose.length ? verbose[verbose.length - 1] : null;
+    var record = {
+      san: String(move || "").replace(/^Berserk:\\s*/, ""),
+      side: moverSide,
+      label: label,
+      accuracy: moveAccuracy,
+      loss: loss,
+      fen: game.fen(),
+      from: last ? last.from : null,
+      to: last ? last.to : null,
+      icon: "./assets/classification/" + (iconFiles[label] || "cls-good.svg")
+    };
+    reviewRecords.push(record);
+    if (Number.isFinite(moveAccuracy)) {
+      sideAccuracy[moverSide].total += moveAccuracy;
+      sideAccuracy[moverSide].count++;
+      updateSideAccuracy();
+    }
+    renderMoveReview();
+  }
+
+  function updateSideAccuracy() {
+    ["w", "b"].forEach(function (side) {
+      var item = sideAccuracy[side];
+      var target = $(side === "w" ? "white-accuracy" : "black-accuracy");
+      if (target) target.textContent = item.count ? Math.round(item.total / item.count) + "%" : "—";
+    });
+  }
+
+  function renderMoveReview() {
+    if (!movesElement) return;
+    var verbose = game.history({ verbose: true });
+    var reviewed = {};
+    reviewRecords.forEach(function (record) {
+      // Match by side and SAN; newest matching review wins.
+      var key = record.side + ":" + record.san;
+      reviewed[key] = record;
+    });
+    movesElement.textContent = "";
+    if (!verbose.length) {
+      movesElement.textContent = "Your game moves will appear here.";
+    } else {
+      for (var i = 0; i < verbose.length; i += 2) {
+        var row = document.createElement("div");
+        row.className = "review-move-row";
+        var number = document.createElement("span");
+        number.className = "review-move-number";
+        number.textContent = (Math.floor(i / 2) + 1) + ".";
+        row.appendChild(number);
+        [verbose[i], verbose[i + 1]].forEach(function (move) {
+          var cell = document.createElement("span");
+          cell.className = "review-move-cell";
+          if (!move) { row.appendChild(cell); return; }
+          var side = move.color;
+          var record = reviewed[side + ":" + move.san];
+          if (record) {
+            var icon = document.createElement("img");
+            icon.className = "move-quality-icon";
+            icon.src = record.icon;
+            icon.alt = record.label;
+            icon.title = record.label;
+            cell.appendChild(icon);
+            cell.title = record.label + (Number.isFinite(record.accuracy) ? " · " + Math.round(record.accuracy) + "% move accuracy" : "");
+            cell.classList.add("reviewed");
+          }
+          var notation = document.createElement("span");
+          notation.textContent = move.san;
+          cell.appendChild(notation);
+          row.appendChild(cell);
+        });
+        movesElement.appendChild(row);
+      }
+    }
+    var count = $("review-move-count");
+    if (count) count.textContent = verbose.length + (verbose.length === 1 ? " move" : " moves");
   }
 
   function completeEngineMoveReview() {
@@ -278,7 +358,7 @@
     var outcome = finalMessage();
     turnLabel.textContent = outcome ? outcome : (engineBusy ? "Berserk is thinking" : (game.turn() === "w" ? "White to move" : "Black to move"));
     moveCount.textContent = "Move " + (Math.floor(game.history().length / 2) + 1);
-    movesElement.textContent = formatHistory();
+    renderMoveReview();
     premoveStatus.textContent = pendingPremove
       ? "Premove queued: " + pendingPremove.from + " → " + pendingPremove.to
       : premoveStatus.textContent;
@@ -445,6 +525,11 @@
     pendingEngineReview = null;
     humanAccuracyTotal = 0;
     humanAccuracyCount = 0;
+    reviewRecords = [];
+    sideAccuracy = { w: { total: 0, count: 0 }, b: { total: 0, count: 0 } };
+    updateSideAccuracy();
+    renderMoveReview();
+    if (hintStatus) hintStatus.textContent = "Tap Hint to ask Berserk for the strongest move in the current position.";
     accuracyValue.textContent = "—";
     evaluationValue.textContent = "—";
     if (evaluationIndicator) evaluationIndicator.style.left = "50%";
@@ -643,6 +728,46 @@
   $("start-btn").addEventListener("click", startGame);
   $("new-btn").addEventListener("click", startGame);
   $("undo-btn").addEventListener("click", undoTurn);
+
+  $("hint-btn").addEventListener("click", async function () {
+    if (!engineReady || !gameStarted || engineBusy || game.game_over()) {
+      if (hintStatus) hintStatus.textContent = !engineReady ? "Berserk is still loading." : "Start a game and wait for Berserk to finish its move before asking for a hint.";
+      return;
+    }
+    var fen = game.fen();
+    var token = turnToken;
+    var button = $("hint-btn");
+    button.disabled = true;
+    button.textContent = "Searching…";
+    if (hintStatus) hintStatus.textContent = "Berserk is analysing this position…";
+    try {
+      var result = await engine.search(fen, Math.max(500, selectedThinkMs()), 1, token);
+      if (token !== turnToken || game.fen() !== fen) return;
+      var uci = result.bestmove;
+      if ((!uci || uci === "(none)" || uci === "0000") && result.candidates && result.candidates[0]) uci = result.candidates[0].uci;
+      if (!uci || uci.length < 4) throw new Error("No legal best move was returned.");
+      var from = uci.slice(0, 2), to = uci.slice(2, 4);
+      var copy = new Chess(fen);
+      var suggested = copy.move({ from: from, to: to, promotion: uci.length > 4 ? uci.charAt(4) : "q" });
+      if (!suggested) throw new Error("Berserk returned a move that is not legal in this position.");
+      arrows = [{ from: from, to: to }];
+      renderArrows();
+      if (hintStatus) hintStatus.textContent = "Berserk's best move: " + suggested.san + " (" + from + " → " + to + "). The arrow shows the suggested move; it has not been played.";
+      qualityMove.textContent = "Hint · " + suggested.san;
+      qualityLabel.textContent = "Best move";
+      if (qualityIcon) {
+        qualityIcon.src = "./assets/classification/cls-great.svg";
+        qualityIcon.alt = "Best move";
+        qualityIcon.hidden = false;
+      }
+      qualityDetail.textContent = "Berserk recommends " + suggested.san + ". Follow the arrow to play it yourself.";
+    } catch (error) {
+      if (hintStatus) hintStatus.textContent = "Hint unavailable: " + (error && error.message ? error.message : String(error));
+    } finally {
+      button.disabled = false;
+      button.textContent = "✦ Hint · best move";
+    }
+  });
 
   ["elo", "attack", "think"].forEach(function (id) {
     $(id).addEventListener("input", updateControls);
