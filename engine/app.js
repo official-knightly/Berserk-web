@@ -257,9 +257,10 @@
     var root = $("board");
     if (!root) return;
     root.querySelectorAll(".square-premove-from,.square-premove-to").forEach(function (el) { el.classList.remove("square-premove-from","square-premove-to"); });
-    if (!lastPremoveHighlight) return;
-    var from = root.querySelector(".square-" + lastPremoveHighlight.from);
-    var to = root.querySelector(".square-" + lastPremoveHighlight.to);
+    var highlight = pendingPremove || lastPremoveHighlight;
+    if (!highlight) return;
+    var from = root.querySelector(".square-" + highlight.from);
+    var to = root.querySelector(".square-" + highlight.to);
     if (from) from.classList.add("square-premove-from");
     if (to) to.classList.add("square-premove-to");
   }
@@ -280,6 +281,7 @@
     lastHumanBeforeFen = beforeFen;
     lastHumanWasPremove = true;
     premoveHistory.push({from:queued.from,to:queued.to,ply:game.history().length-1});
+    lastPremoveHighlight = {from:queued.from,to:queued.to};
     renderGame();
     makeEngineMove();
     return true;
@@ -558,7 +560,7 @@
     qualityMove.textContent = "—";
     qualityDetail.textContent = "Berserk will compare your move with the evaluation before and after it.";
     game.reset();
-    manualResult = null; activeGamePgn = ""; importedGame = false; premoveHistory = []; lastHumanWasPremove = false;
+    manualResult = null; manualOutcome = null; activeGamePgn = ""; importedGame = false; premoveHistory = []; lastHumanWasPremove = false; lastPremoveHighlight = null;
     if ($("postgame-panel")) $("postgame-panel").hidden = true;
     arrows = [];
     arrowStart = null;
@@ -630,34 +632,17 @@
   function clearPremoveHighlights() {
     document.querySelectorAll(".premove-square").forEach(function (node) { node.classList.remove("premove-square"); });
   }
-  function highlightPremoveSquares() {
-    clearPremoveHighlights();
-    if (pendingPremove) {
-      ["." + "square-" + pendingPremove.from, "." + "square-" + pendingPremove.to].forEach(function (selector) {
-        var square = document.querySelector(selector);
-        if (square) square.classList.add("premove-square");
-      });
-    }
-    if (premoveHistory.length) {
-      var latest = premoveHistory[premoveHistory.length - 1];
-      [latest.from, latest.to].forEach(function (name) {
-        var square = document.querySelector(".square-" + name);
-        if (square) square.classList.add("premove-square");
-      });
-    }
-  }
   function showPostgameReport(reason) {
     var panel = $("postgame-panel");
     if (!panel) return;
     var outcome = manualResult || finalMessage() || reason || "Game complete";
-    $("postgame-title").textContent = outcome;
-    $("postgame-subtitle").textContent = activeGameSource + " · " + new Date().toLocaleDateString();
-    $("postgame-result").textContent = outcome.toUpperCase();
-    $("report-white-accuracy").textContent = $("white-accuracy").textContent;
-    $("report-black-accuracy").textContent = $("black-accuracy").textContent;
-    $("report-moves").textContent = String(Math.ceil(game.history().length / 2));
+    $("postgame-result").textContent = outcome;
+    $("postgame-detail").textContent = activeGameSource + " · " + new Date().toLocaleDateString();
+    if ($("report-white-accuracy")) $("report-white-accuracy").textContent = $("white-accuracy").textContent;
+    if ($("report-black-accuracy")) $("report-black-accuracy").textContent = $("black-accuracy").textContent;
+    if ($("report-moves")) $("report-moves").textContent = String(Math.ceil(game.history().length / 2));
     var values = [Number.parseInt($("white-accuracy").textContent,10),Number.parseInt($("black-accuracy").textContent,10)].filter(Number.isFinite);
-    $("report-rating").textContent = values.length ? Math.round(values.reduce(function(a,b){return a+b;},0)/values.length) + "%" : "—";
+    if ($("report-rating")) $("report-rating").textContent = values.length ? Math.round(values.reduce(function(a,b){return a+b;},0)/values.length) + "%" : "—";
     panel.hidden = false;
     reportVisible = true;
   }
@@ -959,7 +944,10 @@
   if ($("fetch-worldchess")) $("fetch-worldchess").addEventListener("click",function(){importWorldChess($("worldchess-pgn-url").value.trim()).catch(function(e){$("import-status").textContent=e.message;});});
   if ($("load-pgn")) $("load-pgn").addEventListener("click",function(){try{parseImportedPgn($("pgn-text").value,"PGN import");}catch(e){$("import-status").textContent=e.message;}});
   if ($("pgn-file")) $("pgn-file").addEventListener("change",function(){var file=this.files&&this.files[0];if(!file)return;var reader=new FileReader();reader.onload=function(){ $("pgn-text").value=String(reader.result||""); };reader.readAsText(file);});
-  if ($("review-game-btn")) $("review-game-btn").addEventListener("click",function(){$("board").scrollIntoView({behavior:"smooth",block:"center"});});
+  if ($("close-postgame")) $("close-postgame").addEventListener("click",function(){$("postgame-panel").hidden=true;});
+  if ($("analyze-postgame")) $("analyze-postgame").addEventListener("click",function(){window.dispatchEvent(new CustomEvent("berserk:open-review",{detail:{pgn:getPgn(),title:"Berserk · "+finalMessage()}}));});
+  if ($("copy-postgame-pgn")) $("copy-postgame-pgn").addEventListener("click",function(){var p=getPgn();if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(p).then(function(){ $("postgame-detail").textContent="PGN copied to clipboard."; });});
+  if ($("download-postgame-pgn")) $("download-postgame-pgn").addEventListener("click",function(){var blob=new Blob([getPgn()],{type:"application/x-chess-pgn"});var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="berserk-game.pgn";a.click();URL.revokeObjectURL(a.href);});
   if ($("download-pgn-btn")) $("download-pgn-btn").addEventListener("click",function(){var blob=new Blob([getPgn()],{type:"application/x-chess-pgn"});var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="berserk-game.pgn";a.click();URL.revokeObjectURL(a.href);});
   if ($("copy-pgn-btn")) $("copy-pgn-btn").addEventListener("click",function(){var pgn=getPgn();if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(pgn).then(function(){$("import-status").textContent="PGN copied."}).catch(function(){$("import-status").textContent="Copy unavailable; use Download PGN."});});
   function showPostgame(resultText, detail) {
