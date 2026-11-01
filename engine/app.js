@@ -15,6 +15,7 @@
   var baselinePromise = null;
   var lastHumanMove = null;
   var lastHumanBeforeFen = null;
+  var pendingEngineReview = null;
   var pendingPremove = null;
   var arrows = [];
   var arrowStart = null;
@@ -93,6 +94,13 @@
     qualityLabel.textContent = label;
     qualityDetail.textContent = "Eval: " + formatEval(before) + " → " + formatEval(after) +
       " · loss " + Math.round(loss) + " cp";
+  }
+
+  function completeEngineMoveReview() {
+    if (!pendingEngineReview) return;
+    showMoveReview("Berserk: " + pendingEngineReview.move, pendingEngineReview.before,
+      analysisBaseline === null ? null : -analysisBaseline);
+    pendingEngineReview = null;
   }
 
   function applyPremove() {
@@ -319,19 +327,20 @@
         renderGame();
         return;
       }
+      pendingEngineReview = { move: played.san, before: scoreFromResult(result) };
       renderGame();
       analysisBaseline = null;
       analysisBaselineFen = null;
       baselinePromise = null;
       if (!game.game_over()) {
-        if (pendingPremove) {
-          engineBusy = true;
-          await prepareHumanBaseline();
-          engineBusy = false;
-          if (!applyPremove()) prepareHumanBaseline();
-        } else {
-          prepareHumanBaseline();
-        }
+        engineBusy = true;
+        await prepareHumanBaseline();
+        completeEngineMoveReview();
+        engineBusy = false;
+        renderGame();
+        if (pendingPremove) applyPremove();
+      } else {
+        pendingEngineReview = null;
       }
     } catch (error) {
       if (requestToken !== turnToken) return;
@@ -361,6 +370,7 @@
     baselinePromise = null;
     lastHumanMove = null;
     lastHumanBeforeFen = null;
+    pendingEngineReview = null;
     game.reset();
     arrows = [];
     renderArrows();
@@ -384,6 +394,7 @@
     baselinePromise = null;
     lastHumanMove = null;
     lastHumanBeforeFen = null;
+    pendingEngineReview = null;
     var undone = false;
     for (var i = 0; i < 2; i++) {
       if (game.undo()) undone = true;
