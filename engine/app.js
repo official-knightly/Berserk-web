@@ -167,7 +167,7 @@
     var verbose = game.history({ verbose: true });
     var last = verbose.length ? verbose[verbose.length - 1] : null;
     var record = {
-      san: String(move || "").replace(/^Berserk:\\s*/, ""),
+      san: String(move || "").replace(/^Berserk:\s*/, ""),
       ply: verbose.length - 1,
       side: moverSide,
       label: label,
