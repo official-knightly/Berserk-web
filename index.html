@@ -15,14 +15,6 @@
   <main class="layout">
     <section class="play-area">
       <div class="board-heading"><div><p class="eyebrow">ANALYSIS BOARD</p><h1>Play against Berserk</h1></div><div class="board-actions"><button id="clear-arrows-btn" class="button secondary">Clear arrows</button><button id="flip-btn" class="button secondary">Flip board</button></div></div>
-      <div class="board-shell"><div id="board"></div><svg id="arrow-layer" viewBox="0 0 8 8" preserveAspectRatio="none" aria-hidden="true"></svg></div>
-      <div class="board-footer"><span id="turn-label">White to move</span><span id="move-count">Move 1</span></div>
-      <p id="premove-status" class="premove-status" aria-live="polite"></p>
-      <p class="board-hint">Left-drag from an empty square to draw an arrow · Right-click anywhere on the board to clear all arrows · Drag your piece while Berserk thinks to queue a premove.</p>
-      <div class="move-tools"><button id="undo-btn" class="button secondary">Undo move</button><button id="new-btn" class="button">New game</button></div>
-      <div class="moves-panel"><div class="panel-title">Move history</div><div id="moves" class="moves-list">Your game moves will appear here.</div></div>
-    </section>
-    <aside class="side-panel">
       <div class="info-card review-card">
         <div class="panel-title">Live move analysis</div>
         <div class="analysis-metrics">
@@ -39,6 +31,14 @@
         <p id="quality-detail" class="quality-detail">Move quality and accuracy will appear after your moves.</p>
         <p class="quality-note">Accuracy is an approximate centipawn-loss estimate, not an official rating.</p>
       </div>
+      <div class="board-shell"><div id="board"></div><svg id="arrow-layer" viewBox="0 0 8 8" preserveAspectRatio="none" aria-hidden="true"></svg></div>
+      <div class="board-footer"><span id="turn-label">White to move</span><span id="move-count">Move 1</span></div>
+      <p id="premove-status" class="premove-status" aria-live="polite"></p>
+      <p class="board-hint">Left-drag from an empty square to draw an arrow · Right-click anywhere on the board to clear all arrows · Drag your piece while Berserk thinks to queue a premove.</p>
+      <div class="move-tools"><button id="undo-btn" class="button secondary">Undo move</button><button id="new-btn" class="button">New game</button></div>
+      <div class="moves-panel"><div class="panel-title">Move history</div><div id="moves" class="moves-list">Your game moves will appear here.</div></div>
+    </section>
+    <aside class="side-panel">
       <div class="engine-card">
         <div class="engine-brand"><img class="berserk-logo" src="https://raw.githubusercontent.com/official-knightly/Berserk/main/logo.png" alt="Berserk chess engine logo"><div><p class="eyebrow">CHESS ENGINE</p><h2>Berserk</h2><span class="subtext">Local engine test bench</span></div></div>
         <div class="elo-row"><div><span class="metric-label">Target strength</span><strong id="elo-value">1800 Elo</strong></div><span class="elo-pill">CUSTOM</span></div>
