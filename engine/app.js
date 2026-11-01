@@ -818,7 +818,8 @@
       if (!gameStarted || game.game_over() || manualOutcome) return "snapback";
       if (engineBusy) {
         pendingPremove = { from: source, to: target, promotion: "q" };
-        lastPremoveHighlight = { from: source, to: target };\n        renderPremoveHighlight();
+        lastPremoveHighlight = { from: source, to: target };
+        renderPremoveHighlight();
         premoveStatus.textContent = "Premove queued: " + source + " → " + target;
         return "snapback";
       }
