@@ -55,6 +55,7 @@ jobs:
       - name: Check browser engine loader syntax
         run: |
           node --check engine/app.js
+          node --check engine/postgame.js
           node --check engine/engine.js
           node --check engine/engine-worker.js
           node --check engine/uci-worker.js
