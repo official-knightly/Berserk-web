@@ -27,3 +27,9 @@
 .evaluation-indicator{position:absolute;top:-5px;left:50%;width:3px;height:20px;background:#e6c45b;border:1px solid #171918;border-radius:2px;transform:translateX(-50%);box-shadow:0 0 0 1px #e6c45b;transition:left .25s ease}
 .evaluation-labels{display:flex;justify-content:space-between;color:var(--muted);font-size:9px;margin:8px 0 16px}
 .analysis-quality{padding-top:13px;border-top:1px solid var(--line)}
+
+
+/* Keep live move analysis at the upper-left, directly above the board. */
+.play-area > .review-card{max-width:680px;margin:0 auto 14px;width:100%}
+.review-card .analysis-metric strong{display:block}
+.review-card .evaluation-track{cursor:default}
