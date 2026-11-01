@@ -375,7 +375,7 @@
 
   function renderGame() {
     if (board) board.position(game.fen(), false);
-    highlightPremoveSquares();\n    renderPremoveHighlight();
+    renderPremoveHighlight();
     var outcome = finalMessage();
     turnLabel.textContent = outcome ? outcome : (engineBusy ? "Berserk is thinking" : (game.turn() === "w" ? "White to move" : "Black to move"));
     moveCount.textContent = "Move " + (Math.floor(game.history().length / 2) + 1);
