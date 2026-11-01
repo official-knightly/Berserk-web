@@ -362,6 +362,7 @@
   }
 
   function finalMessage() {
+    if (manualOutcome) return manualOutcome;
     if (manualResult) return manualResult;
     if (game.in_checkmate()) {
       return (game.turn() === "w" ? "Black" : "White") + " wins by checkmate";
@@ -385,7 +386,7 @@
       : premoveStatus.textContent;
     if (outcome) {
       gameStatus.textContent = outcome;
-      if (game.history().length && !reportVisible && !manualResult) showPostgameReport(outcome);
+      if (game.history().length && !reportVisible && !manualOutcome && !manualResult) showPostgameReport(outcome);
     } else if (!gameStarted) {
       gameStatus.textContent = "Ready";
     } else if (engineBusy) {
@@ -585,7 +586,7 @@
     pendingPremove = null;
     lastPremoveHighlight = null;
     premoveHistory = [];
-    if (manualResult) { manualResult = null; gameStarted = true; }
+    if (manualResult || manualOutcome) { manualResult = null; manualOutcome = null; gameStarted = true; }
     renderPremoveHighlight();
     premoveStatus.textContent = "";
     analysisBaseline = null;
@@ -642,36 +643,10 @@
   function showPostgameReport(reason) {
     var panel = $("postgame-panel");
     if (!panel) return;
-    var outcome = manualResult || finalMessage() || reason || "Game complete";
+    var outcome = manualOutcome || manualResult || finalMessage() || reason || "Game complete";
     $("postgame-result").textContent = outcome;
-    $("postgame-detail").textContent = activeGameSource + " · " + new Date().toLocaleDateString();
-    if ($("report-white-accuracy")) $("report-white-accuracy").textContent = $("white-accuracy").textContent;
-    if ($("report-black-accuracy")) $("report-black-accuracy").textContent = $("black-accuracy").textContent;
-    if ($("report-moves")) $("report-moves").textContent = String(Math.ceil(game.history().length / 2));
-    var values = [Number.parseInt($("white-accuracy").textContent,10),Number.parseInt($("black-accuracy").textContent,10)].filter(Number.isFinite);
-    if ($("report-rating")) $("report-rating").textContent = values.length ? Math.round(values.reduce(function(a,b){return a+b;},0)/values.length) + "%" : "—";
-    panel.hidden = false;
+    showPostgame(outcome, activeGameSource + " · " + new Date().toLocaleDateString());
     reportVisible = true;
-  }
-  function finishGame(result, reason) {
-    if (game.game_over() || manualResult) return;
-    turnToken++;
-    engineBusy = false;
-    pendingPremove = null;
-    pendingEngineReview = null;
-    manualResult = result;
-    premoveStatus.textContent = "";
-    gameStarted = false;
-    gameStatus.textContent = result;
-    turnLabel.textContent = result;
-    if (reason) qualityDetail.textContent = reason;
-    renderGame();
-    showPostgameReport(result);
-  }
-  function getPgn() {
-    if (activeGamePgn) return activeGamePgn;
-    try { var result = manualResult ? (manualResult.indexOf("Black wins")===0 ? "0-1" : manualResult.indexOf("White wins")===0 ? "1-0" : "1/2-1/2") : (game.in_checkmate() ? (game.turn()==="w"?"0-1":"1-0") : game.in_draw() ? "1/2-1/2" : "*"); game.header("Result", result); return game.pgn({ max_width: 80, newline_char: "\n" }); }
-    catch (_) { return game.pgn(); }
   }
   function parseImportedPgn(pgn, source) {
     if (!pgn || !pgn.trim()) throw new Error("No PGN content was provided.");
@@ -944,17 +919,11 @@
   $("start-btn").addEventListener("click", startGame);
   $("new-btn").addEventListener("click", startGame);
   $("undo-btn").addEventListener("click", undoTurn);
-  if ($("resign-btn")) $("resign-btn").addEventListener("click",function(){if(!gameStarted||!game.history().length)return;if(confirm("Resign this game?"))finishGame(humanSide==="w"?"Black wins by resignation":"White wins by resignation","You resigned. Review the game to learn from it.");});
-  if ($("draw-btn")) $("draw-btn").addEventListener("click",function(){if(!gameStarted||!game.history().length)return;if(confirm("Agree to a draw and end this game?"))finishGame("Draw by agreement","The game ended by mutual draw agreement.");});
   if ($("fetch-chesscom")) bindImportButton("fetch-chesscom",fetchChessCom,"chesscom-username");
   if ($("fetch-lichess")) bindImportButton("fetch-lichess",fetchLichess,"lichess-username");
   if ($("fetch-worldchess")) $("fetch-worldchess").addEventListener("click",function(){importWorldChess($("worldchess-pgn-url").value.trim()).catch(function(e){$("import-status").textContent=e.message;});});
   if ($("load-pgn")) $("load-pgn").addEventListener("click",function(){try{parseImportedPgn($("pgn-text").value,"PGN import");}catch(e){$("import-status").textContent=e.message;}});
   if ($("pgn-file")) $("pgn-file").addEventListener("change",function(){var file=this.files&&this.files[0];if(!file)return;var reader=new FileReader();reader.onload=function(){ $("pgn-text").value=String(reader.result||""); };reader.readAsText(file);});
-  if ($("close-postgame")) $("close-postgame").addEventListener("click",function(){$("postgame-panel").hidden=true;});
-  if ($("analyze-postgame")) $("analyze-postgame").addEventListener("click",function(){window.dispatchEvent(new CustomEvent("berserk:open-review",{detail:{pgn:getPgn(),title:"Berserk · "+finalMessage()}}));});
-  if ($("copy-postgame-pgn")) $("copy-postgame-pgn").addEventListener("click",function(){var p=getPgn();if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(p).then(function(){ $("postgame-detail").textContent="PGN copied to clipboard."; });});
-  if ($("download-postgame-pgn")) $("download-postgame-pgn").addEventListener("click",function(){var blob=new Blob([getPgn()],{type:"application/x-chess-pgn"});var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="berserk-game.pgn";a.click();URL.revokeObjectURL(a.href);});
   if ($("download-pgn-btn")) $("download-pgn-btn").addEventListener("click",function(){var blob=new Blob([getPgn()],{type:"application/x-chess-pgn"});var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="berserk-game.pgn";a.click();URL.revokeObjectURL(a.href);});
   if ($("copy-pgn-btn")) $("copy-pgn-btn").addEventListener("click",function(){var pgn=getPgn();if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(pgn).then(function(){$("import-status").textContent="PGN copied."}).catch(function(){$("import-status").textContent="Copy unavailable; use Download PGN."});});
   function showPostgame(resultText, detail) {
@@ -962,6 +931,11 @@
     if (!panel) return;
     $("postgame-result").textContent = resultText;
     $("postgame-detail").textContent = detail || "The game is complete. Review the moves or export the PGN.";
+    if ($("report-white-accuracy")) $("report-white-accuracy").textContent = $("white-accuracy").textContent;
+    if ($("report-black-accuracy")) $("report-black-accuracy").textContent = $("black-accuracy").textContent;
+    if ($("report-moves")) $("report-moves").textContent = String(Math.ceil(game.history().length / 2));
+    var reportValues = [Number.parseInt($("white-accuracy").textContent,10),Number.parseInt($("black-accuracy").textContent,10)].filter(Number.isFinite);
+    if ($("report-rating")) $("report-rating").textContent = reportValues.length ? Math.round(reportValues.reduce(function(x,y){return x+y;},0)/reportValues.length) + "%" : "—";
     panel.hidden = false;
     panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
