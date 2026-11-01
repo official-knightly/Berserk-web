@@ -273,7 +273,13 @@
     var beforeFen = game.fen();
     var move = game.move({ from: queued.from, to: queued.to, promotion: queued.promotion || "q" });
     if (!move) {
-      premoveStatus.textContent = "Premove unavailable — the move is no longer legal.";
+      // A queued premove can become illegal after Berserk replies. Remove every
+      // queued highlight immediately so no stale arrow remains on the board.
+      lastPremoveHighlight = null;
+      arrows = arrows.filter(function (arrow) { return arrow.from !== queued.from || arrow.to !== queued.to; });
+      premoveStatus.textContent = "Premove cleared — Berserk's move made it illegal.";
+      renderPremoveHighlight();
+      renderArrows();
       renderGame();
       return false;
     }
@@ -814,10 +820,10 @@
       if (!engineBusy && game.turn() !== humanSide) return false;
       return true;
     },
-    onDrop: function (source, target) {
+    onDrop: function (source, target, piece, newPos, oldPos, orientation, promotionChoice) {
       if (!gameStarted || game.game_over() || manualOutcome) return "snapback";
       if (engineBusy) {
-        pendingPremove = { from: source, to: target, promotion: "q" };
+        pendingPremove = { from: source, to: target, promotion: promotionChoice || "q" };
         lastPremoveHighlight = { from: source, to: target };
         renderPremoveHighlight();
         premoveStatus.textContent = "Premove queued: " + source + " → " + target;
@@ -825,7 +831,7 @@
       }
       if (game.turn() !== humanSide) return "snapback";
       var beforeFen = game.fen();
-      var move = game.move({ from: source, to: target, promotion: "q" });
+      var move = game.move({ from: source, to: target, promotion: promotionChoice || "q" });
       if (move === null) return "snapback";
       lastHumanMove = move.san;
       lastHumanBeforeFen = beforeFen;
