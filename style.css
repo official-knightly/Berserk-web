@@ -172,7 +172,7 @@ body{background:#171717}
 .postgame-actions{display:flex;flex-wrap:wrap;gap:9px}
 .review-move-cell.premove-mark{outline:1px solid var(--gold);background:#3a2d10;color:#ffe3a0}
 .review-move-cell.premove-mark:after{content:"P";font-size:9px;font-weight:900;color:var(--gold);margin-left:auto}
-.square-55d63.premove-square{box-shadow:inset 0 0 0 4px rgba(255,189,22,.85)!important}
+.square-55d63.premove-square{box-shadow:inset 0 0 0 4px rgba(255,189,22,.85)!important}.square-premove-from{box-shadow:inset 0 0 0 4px rgba(255,189,22,.95)!important}.square-premove-to{box-shadow:inset 0 0 0 4px rgba(255,189,22,.6)!important;background-image:radial-gradient(circle,rgba(255,189,22,.45) 38%,transparent 40%)!important}
 .game-controls{display:flex;gap:8px;flex-wrap:wrap;max-width:680px;margin:12px auto 0}
 .game-controls .button{flex:1}
 .button.danger{background:#3b2020;border-color:#6b3434;color:#ffb2a8}
