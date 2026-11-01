@@ -41,7 +41,35 @@ function analyzePosition(){
  else $("review-best").textContent="No best move returned.";
  }).catch(function(e){$("review-best").textContent="Analysis failed: "+e.message;}).finally(function(){$("review-analyze-position").disabled=false;});
 }
-function analyzeFullGame(){var url="https://www.chessigma.com/tools/analysis?pgn="+encodeURIComponent(reviewPgn);window.open(url,"_blank","noopener");}
+async function analyzeFullGame(){
+ if(!reviewEngine){$("review-best").textContent="Berserk engine is not ready.";return;}
+ var button=$("review-analyze-game");button.disabled=true;
+ try{
+  await reviewEngine.ready;
+  var replay=new Chess(), grades=[], total=reviewMoves.length;
+  for(var i=0;i<total;i++){
+   $("review-best").textContent="Berserk reviewing move "+(i+1)+" of "+total+"…";
+   var beforeFen=replay.fen();
+   var beforeResult=await reviewEngine.search(beforeFen,250,1,1000+i*2);
+   var before=beforeResult.candidates&&beforeResult.candidates[0]?beforeResult.candidates[0].scoreCp:beforeResult.scoreCp;
+   if(replay.turn()==="b")before=-before;
+   replay.move({from:reviewMoves[i].from,to:reviewMoves[i].to,promotion:reviewMoves[i].promotion||"q"});
+   var afterFen=replay.fen();
+   var afterResult=await reviewEngine.search(afterFen,250,1,1001+i*2);
+   var after=afterResult.candidates&&afterResult.candidates[0]?afterResult.candidates[0].scoreCp:afterResult.scoreCp;
+   if(replay.turn()==="b")after=-after;
+   var loss=Number.isFinite(before)&&Number.isFinite(after)?Math.max(0,reviewMoves[i].color==="b"?after-before:before-after):null;
+   var label=loss===null?"Not rated":loss<=10?"Best":loss<=25?"Excellent":loss<=50?"Good":loss<=100?"Inaccuracy":loss<=200?"Mistake":"Blunder";
+   grades.push({label:label,loss:loss});
+   var moveButton=$("import-review-moves").children[i];
+   if(moveButton){moveButton.title=label+(loss===null?"":" · "+Math.round(loss)+" cp loss");moveButton.classList.add("grade-"+label.toLowerCase().replace(/\s+/g,"-"));moveButton.textContent=moveButton.textContent.replace(/ · (Best|Excellent|Good|Inaccuracy|Mistake|Blunder|Not rated)$/,"")+" · "+label;}
+  }
+  var counts={Best:0,Excellent:0,Good:0,Inaccuracy:0,Mistake:0,Blunder:0};
+  grades.forEach(function(g){if(counts[g.label]!==undefined)counts[g.label]++;});
+  $("review-best").textContent="Full review complete · "+counts.Best+" best · "+counts.Excellent+" excellent · "+counts.Good+" good · "+counts.Inaccuracy+" inaccuracies · "+counts.Mistake+" mistakes · "+counts.Blunder+" blunders.";
+ }catch(e){$("review-best").textContent="Full game analysis failed: "+e.message;}
+ finally{button.disabled=false;}
+}
 async function loadUserGames(){
  var platform=$("import-platform").value,username=$("import-username").value.trim();
  if(!username){status("Enter a username first.");return;}
