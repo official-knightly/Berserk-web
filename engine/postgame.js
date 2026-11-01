@@ -1,7 +1,7 @@
 (function () {
 "use strict";
 var $=function(id){return document.getElementById(id);};
-var reviewGame=null, reviewBoard=null, reviewMoves=[], reviewPgn="", reviewTitle="", reviewPly=0, reviewEngine=null, reviewEvaluations=[];
+var reviewGame=null, reviewBoard=null, reviewMoves=[], reviewPgn="", reviewTitle="", reviewPly=0, reviewEngine=null, reviewEvaluations=[], reviewGrades=[];
 function status(message){$("import-status").textContent=message;}
 function safeText(value){return String(value||"").replace(/[<>]/g,"");}
 function pgnHeaders(pgn){var out={};String(pgn).replace(/^\[(\w+)\s+"([^"]*)"\]\s*$/gm,function(_,k,v){out[k]=v;});return out;}
@@ -9,7 +9,7 @@ function openReview(pgn,title){
  if(!pgn||!String(pgn).trim()){status("This game has no PGN to review.");return;}
  try{reviewGame=new Chess();if(!reviewGame.load_pgn(pgn,{sloppy:true}))throw new Error("The PGN could not be parsed.");}
  catch(e){status("Invalid PGN: "+e.message);return;}
- reviewPgn=pgn;reviewTitle=title||"Imported game";reviewMoves=reviewGame.history({verbose:true});reviewPly=0;reviewEvaluations=[];renderEvaluationGraph([]);
+ reviewPgn=pgn;reviewTitle=title||"Imported game";reviewMoves=reviewGame.history({verbose:true});reviewPly=0;reviewEvaluations=[];reviewGrades=[];renderEvaluationGraph([]);
  var h=pgnHeaders(pgn);
  $("import-review-title").textContent=reviewTitle;$("review-white").textContent=h.White||"White";$("review-black").textContent=h.Black||"Black";$("review-result").textContent=h.Result||"*";$("review-opening").textContent=h.Opening||h.ECO||"Imported game";if($("review-result-chip"))$("review-result-chip").textContent="Result · "+(h.Result||"*");if($("review-opening-detail"))$("review-opening-detail").textContent=h.Opening||h.ECO||"Not included in PGN";
  $("import-review").hidden=false;$("import-review").scrollIntoView({behavior:"smooth",block:"start"});
@@ -45,7 +45,7 @@ function renderReview(){
  $("review-prev").disabled=reviewPly===0;$("review-next").disabled=reviewPly>=reviewMoves.length;
  var list=$("import-review-moves");list.textContent="";
  var row=0;
- reviewMoves.forEach(function(m,i){var b=document.createElement("button");b.textContent=(i%2===0?(Math.floor(i/2)+1)+". ":"")+m.san;b.className=i===reviewPly-1?"active":"";b.addEventListener("click",function(){reviewPly=i+1;renderReview();});list.appendChild(b);});
+ reviewMoves.forEach(function(m,i){var b=document.createElement("button");b.textContent=(i%2===0?(Math.floor(i/2)+1)+". ":"")+m.san;b.className=i===reviewPly-1?"active":"";var grade=reviewGrades[i];if(grade){b.classList.add("grade-"+grade.label.toLowerCase().replace(/\\s+/g,"-"));b.title=grade.label+(grade.loss===null?"":" · "+Math.round(grade.loss)+" cp loss");b.textContent+=" · "+grade.label;}b.addEventListener("click",function(){reviewPly=i+1;renderReview();});list.appendChild(b);});
  $("review-eval").textContent="Not analyzed";$("review-best").textContent="Analyze this position with Berserk.";
 }
 function analyzePosition(){
@@ -85,7 +85,7 @@ async function analyzeFullGame(){
    var moveButton=$("import-review-moves").children[i];
    if(moveButton){moveButton.title=label+(loss===null?"":" · "+Math.round(loss)+" cp loss");moveButton.classList.add("grade-"+label.toLowerCase().replace(/\s+/g,"-"));moveButton.textContent=moveButton.textContent.replace(/ · (Best|Excellent|Good|Inaccuracy|Mistake|Blunder|Not rated)$/,"")+" · "+label;}
   }
-  reviewEvaluations=evaluations;renderEvaluationGraph(reviewEvaluations);if($("review-analysis-state"))$("review-analysis-state").textContent="Complete";if($("review-reviewed-count"))$("review-reviewed-count").textContent=grades.length;if($("review-white-snapshot"))$("review-white-snapshot").textContent=$("review-white-accuracy").textContent;if($("review-black-snapshot"))$("review-black-snapshot").textContent=$("review-black-accuracy").textContent;
+  reviewEvaluations=evaluations;reviewGrades=grades.slice();renderEvaluationGraph(reviewEvaluations);if($("review-analysis-state"))$("review-analysis-state").textContent="Complete";if($("review-reviewed-count"))$("review-reviewed-count").textContent=grades.length;if($("review-white-snapshot"))$("review-white-snapshot").textContent=$("review-white-accuracy").textContent;if($("review-black-snapshot"))$("review-black-snapshot").textContent=$("review-black-accuracy").textContent;
   var counts={Best:0,Excellent:0,Good:0,Inaccuracy:0,Mistake:0,Blunder:0};
   grades.forEach(function(g){if(counts[g.label]!==undefined)counts[g.label]++;});
   $("review-best").textContent="Full review complete · "+counts.Best+" best · "+counts.Excellent+" excellent · "+counts.Good+" good · "+counts.Inaccuracy+" inaccuracies · "+counts.Mistake+" mistakes · "+counts.Blunder+" blunders.";
