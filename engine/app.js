@@ -106,9 +106,6 @@
       return false;
     }
     lastHumanMove = move.san;
-    analysisBaseline = null;
-    analysisBaselineFen = null;
-    baselinePromise = null;
     renderGame();
     makeEngineMove();
     return true;
@@ -319,7 +316,14 @@
       analysisBaselineFen = null;
       baselinePromise = null;
       if (!game.game_over()) {
-        if (!applyPremove()) prepareHumanBaseline();
+        if (pendingPremove) {
+          engineBusy = true;
+          await prepareHumanBaseline();
+          engineBusy = false;
+          if (!applyPremove()) prepareHumanBaseline();
+        } else {
+          prepareHumanBaseline();
+        }
       }
     } catch (error) {
       if (requestToken !== turnToken) return;
@@ -439,8 +443,6 @@
       var move = game.move({ from: source, to: target, promotion: "q" });
       if (move === null) return "snapback";
       lastHumanMove = move.san;
-      analysisBaseline = null;
-      analysisBaselineFen = null;
       renderGame();
       if (game.game_over()) return;
       makeEngineMove();
