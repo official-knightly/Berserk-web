@@ -358,12 +358,13 @@
         beforeScore = scoreToWhitePerspective(scoreFromResult(beforeResult), lastHumanBeforeFen);
       }
       var requestedMultiPV = Math.max(1, Math.min(8, Math.ceil((3000 - selectedElo()) / 400) + 1));
-      var result = await engine.search(game.fen(), selectedThinkMs(), requestedMultiPV, requestToken);
+      var engineSearchFen = game.fen();
+      var result = await engine.search(engineSearchFen, selectedThinkMs(), requestedMultiPV, requestToken);
       if (requestToken !== turnToken) return;
       engineBusy = false;
       if (lastHumanMove) {
         var enginePerspective = scoreFromResult(result);
-        var afterWhite = scoreToWhitePerspective(enginePerspective, game.fen());
+        var afterWhite = scoreToWhitePerspective(enginePerspective, engineSearchFen);
         showMoveReview(lastHumanMove, beforeScore, afterWhite, true, humanSide);
         lastHumanMove = null;
         lastHumanBeforeFen = null;
@@ -380,8 +381,8 @@
       }
       pendingEngineReview = {
         move: played.san,
-        before: scoreToWhitePerspective(scoreFromResult(result), game.fen()),
-        side: game.turn() === "w" ? "b" : "w"
+        before: scoreToWhitePerspective(scoreFromResult(result), engineSearchFen),
+        side: engineSearchFen.split(" ")[1]
       };
       renderGame();
       analysisBaseline = null;
