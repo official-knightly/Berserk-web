@@ -480,33 +480,39 @@
     }
   });
 
-  $("board").addEventListener("contextmenu", function (event) { event.preventDefault(); });
-  $("board").addEventListener("pointerdown", function (event) {
-    if (event.button !== 2) return;
+  var leftArrowStart = null;
+  $("board").addEventListener("contextmenu", function (event) {
     event.preventDefault();
-    arrowStart = squareAtPointer(event);
-  });
-  window.addEventListener("pointerup", function (event) {
-    if (event.button !== 2 || !arrowStart) return;
-    var dragStart = arrowStart;
-    var target = squareAtPointer(event);
+    arrows = [];
     arrowStart = null;
-
-    // Right-click + drag draws immediately. Two right-clicks also draw an arrow,
-    // which works better on touchpads and when a short drag is difficult.
-    if (target && target !== dragStart) {
-      arrows.push({ from: dragStart, to: target });
+    arrowPendingStart = null;
+    leftArrowStart = null;
+    renderArrows();
+  });
+  $("board").addEventListener("pointerdown", function (event) {
+    if (event.button === 2) {
+      event.preventDefault();
+      arrows = [];
+      arrowStart = null;
       arrowPendingStart = null;
+      leftArrowStart = null;
       renderArrows();
       return;
     }
-    if (!target) return;
-    if (arrowPendingStart && arrowPendingStart !== target) {
-      arrows.push({ from: arrowPendingStart, to: target });
-      arrowPendingStart = null;
+    if (event.button !== 0) return;
+    var square = squareAtPointer(event);
+    // Keep normal piece dragging for occupied squares. Left-dragging from an
+    // empty square draws an annotation arrow instead of starting a chess move.
+    if (square && !game.get(square)) leftArrowStart = square;
+  });
+  window.addEventListener("pointerup", function (event) {
+    if (event.button !== 0 || !leftArrowStart) return;
+    var from = leftArrowStart;
+    var to = squareAtPointer(event);
+    leftArrowStart = null;
+    if (to && to !== from) {
+      arrows.push({ from: from, to: to });
       renderArrows();
-    } else {
-      arrowPendingStart = target;
     }
   });
   $("clear-arrows-btn").addEventListener("click", function () {
