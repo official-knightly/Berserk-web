@@ -609,3 +609,20 @@ footer{padding:22px 15px;border-top:1px solid #29332b;color:#7f8c80;font-size:9p
  .live-lookup-row{grid-template-columns:1fr}
  .live-lookup input{grid-column:1}
 }
+
+
+/* Board-first hierarchy: the chessboard is the primary workspace. */
+.play-area>.board-heading{order:0}
+.play-area>.board-shell{order:1}
+.play-area>.board-footer{order:2}
+.play-area>.premove-status{order:3}
+.play-area>.board-hint{order:4}
+.play-area>.move-tools{order:5}
+.play-area>.moves-panel{order:6}
+.play-area>.review-card{order:7}
+.play-area>.accuracy-card{order:8}
+.play-area>.hint-status{order:9}
+@media(max-width:560px){
+ .play-area>.review-card{grid-column:1}
+ .play-area>.accuracy-card{grid-column:1}
+}
