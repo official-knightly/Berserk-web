@@ -817,7 +817,8 @@
     onDrop: function (source, target) {
       if (!gameStarted || game.game_over() || manualOutcome) return "snapback";
       if (engineBusy) {
-        pendingPremove = { from: source, to: target, promotion: "q" };\n        lastPremoveHighlight = { from: source, to: target };\n        renderPremoveHighlight();
+        pendingPremove = { from: source, to: target, promotion: "q" };
+        lastPremoveHighlight = { from: source, to: target };\n        renderPremoveHighlight();
         premoveStatus.textContent = "Premove queued: " + source + " → " + target;
         return "snapback";
       }
@@ -947,7 +948,7 @@
     else if (game.in_checkmate()) result = game.turn() === "w" ? "0-1" : "1-0";
     else if (game.in_draw()) result = "1/2-1/2";
     var moves = formatHistory();
-    return '[Event "Berserk Web"]\\n[Result "' + result + '"]\\n\\n' + moves + (moves ? " " : "") + result;
+    return '[Event "Berserk Web"]\n[Result "' + result + '"]\n\n' + moves + (moves ? " " : "") + result;
   }
   $("resign-btn").addEventListener("click", function () {
     if (!gameStarted || game.game_over() || manualOutcome) return;
