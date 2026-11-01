@@ -14,6 +14,7 @@
   var analysisBaselineFen = null;
   var baselinePromise = null;
   var lastHumanMove = null;
+  var lastHumanBeforeFen = null;
   var pendingPremove = null;
   var arrows = [];
   var arrowStart = null;
@@ -106,6 +107,7 @@
       return false;
     }
     lastHumanMove = move.san;
+    lastHumanBeforeFen = game.fen();
     renderGame();
     makeEngineMove();
     return true;
@@ -292,6 +294,10 @@
     try {
       if (baselinePromise) await baselinePromise;
       var beforeScore = analysisBaseline;
+      if (lastHumanMove && beforeScore === null && lastHumanBeforeFen) {
+        var beforeResult = await engine.search(lastHumanBeforeFen, 350, 1, requestToken);
+        beforeScore = scoreFromResult(beforeResult);
+      }
       var requestedMultiPV = Math.max(1, Math.min(8, Math.ceil((3000 - selectedElo()) / 400) + 1));
       var result = await engine.search(game.fen(), selectedThinkMs(), requestedMultiPV, requestToken);
       if (requestToken !== turnToken) return;
@@ -300,6 +306,7 @@
         var enginePerspective = scoreFromResult(result);
         showMoveReview(lastHumanMove, beforeScore, enginePerspective === null ? null : -enginePerspective);
         lastHumanMove = null;
+        lastHumanBeforeFen = null;
       }
 
       var chosenMove = chooseEngineMove(result);
@@ -352,6 +359,7 @@
     analysisBaselineFen = null;
     baselinePromise = null;
     lastHumanMove = null;
+    lastHumanBeforeFen = null;
     game.reset();
     arrows = [];
     renderArrows();
@@ -374,6 +382,7 @@
     analysisBaselineFen = null;
     baselinePromise = null;
     lastHumanMove = null;
+    lastHumanBeforeFen = null;
     var undone = false;
     for (var i = 0; i < 2; i++) {
       if (game.undo()) undone = true;
@@ -445,6 +454,7 @@
       var move = game.move({ from: source, to: target, promotion: "q" });
       if (move === null) return "snapback";
       lastHumanMove = move.san;
+      lastHumanBeforeFen = game.fen();
       renderGame();
       if (game.game_over()) return;
       makeEngineMove();
