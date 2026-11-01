@@ -49,11 +49,12 @@
   function selectedThinkMs() { return Math.round(Number($("think").value) * 1000); }
 
   function scoreFromResult(result) {
-    if (result && Number.isFinite(Number(result.scoreCp))) return Number(result.scoreCp);
+    // Prefer the deepest rank-1 UCI info line parsed by the worker.
     if (result && result.candidates && result.candidates.length &&
         Number.isFinite(Number(result.candidates[0].scoreCp))) {
       return Number(result.candidates[0].scoreCp);
     }
+    if (result && Number.isFinite(Number(result.scoreCp))) return Number(result.scoreCp);
     return null;
   }
 
