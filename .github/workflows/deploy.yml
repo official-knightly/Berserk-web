@@ -57,9 +57,6 @@ jobs:
           node --check engine/engine-worker.js
           node --check engine/uci-worker.js
 
-      - name: Install matching wasm-bindgen CLI
-        run: cargo install wasm-bindgen-cli --version 0.2.129 --locked
-
       - name: Assemble Pages artifact
         run: |
           mkdir -p dist
