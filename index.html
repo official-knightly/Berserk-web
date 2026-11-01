@@ -14,9 +14,10 @@
   </header>
   <main class="layout">
     <section class="play-area">
-      <div class="board-heading"><div><p class="eyebrow">ANALYSIS BOARD</p><h1>Play against Berserk</h1></div><button id="flip-btn" class="button secondary">Flip board</button></div>
-      <div class="board-shell"><div id="board"></div></div>
+      <div class="board-heading"><div><p class="eyebrow">ANALYSIS BOARD</p><h1>Play against Berserk</h1></div><div class="board-actions"><button id="clear-arrows-btn" class="button secondary">Clear arrows</button><button id="flip-btn" class="button secondary">Flip board</button></div></div>
+      <div class="board-shell"><div id="board"></div><svg id="arrow-layer" viewBox="0 0 8 8" preserveAspectRatio="none" aria-hidden="true"></svg></div>
       <div class="board-footer"><span id="turn-label">White to move</span><span id="move-count">Move 1</span></div>
+      <p id="premove-status" class="premove-status" aria-live="polite"></p>
       <div class="move-tools"><button id="undo-btn" class="button secondary">Undo move</button><button id="new-btn" class="button">New game</button></div>
       <div class="moves-panel"><div class="panel-title">Move history</div><div id="moves" class="moves-list">Your game moves will appear here.</div></div>
     </section>
@@ -39,6 +40,7 @@
         <button id="start-btn" class="button start-button">Start game</button>
         <p class="notice" id="engine-note">Powered by the real Berserk WebAssembly engine. Target Elo is an approximate playing-strength control, not an official rating. Serve over HTTPS or localhost.</p>
       </div>
+      <div class="info-card review-card"><div class="panel-title">Move quality</div><div class="quality-heading"><strong id="quality-label">Waiting for a move</strong><span id="quality-move">—</span></div><p id="quality-detail" class="quality-detail">Berserk will compare your move with the evaluation of the position before and after it.</p><p class="quality-note">Approximate centipawn-loss grading · Best ≤10 · Good ≤50 · Inaccuracy ≤100 · Mistake ≤200 · Blunder &gt;200</p></div>
       <div class="info-card"><div class="panel-title">Session</div><div class="session-row"><span>Player</span><strong id="player-side">White</strong></div><div class="session-row"><span>Berserk</span><strong id="engine-side">Black</strong></div><div class="session-row"><span>Think time</span><strong id="session-time">1.0 sec</strong></div><div class="session-row"><span>Game status</span><strong id="game-status">Ready</strong></div></div>
     </aside>
   </main>
