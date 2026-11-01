@@ -651,13 +651,13 @@
     draggable: true,
     pieceTheme: "https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png",
     onDragStart: function (source, piece) {
-      if (!gameStarted || game.game_over()) return false;
+      if (!gameStarted || game.game_over() || manualOutcome) return false;
       if (piece.charAt(0) !== humanSide) return false;
       if (!engineBusy && game.turn() !== humanSide) return false;
       return true;
     },
     onDrop: function (source, target) {
-      if (!gameStarted || game.game_over()) return "snapback";
+      if (!gameStarted || game.game_over() || manualOutcome) return "snapback";
       if (engineBusy) {
         pendingPremove = { from: source, to: target, promotion: "q" };\n        lastPremoveHighlight = { from: source, to: target };\n        renderPremoveHighlight();
         premoveStatus.textContent = "Premove queued: " + source + " → " + target;
@@ -770,9 +770,14 @@
     panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
   function currentPgn() {
-    var pgn = game.pgn({ max_width: 80, newline: "\\n" });
-    if (!pgn) pgn = '[Event "Berserk Web"]\\n[Result "*"]\\n\\n*';
-    return pgn;
+    var result = "*";
+    if (manualOutcome === "Draw by agreement" || manualOutcome === "Draw") result = "1/2-1/2";
+    else if (manualOutcome && manualOutcome.indexOf("White wins") === 0) result = "1-0";
+    else if (manualOutcome && manualOutcome.indexOf("Black wins") === 0) result = "0-1";
+    else if (game.in_checkmate()) result = game.turn() === "w" ? "0-1" : "1-0";
+    else if (game.in_draw()) result = "1/2-1/2";
+    var moves = formatHistory();
+    return '[Event "Berserk Web"]\\n[Result "' + result + '"]\\n\\n' + moves + (moves ? " " : "") + result;
   }
   $("resign-btn").addEventListener("click", function () {
     if (!gameStarted || game.game_over() || manualOutcome) return;
