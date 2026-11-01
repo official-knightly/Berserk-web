@@ -167,6 +167,7 @@
     var verbose = game.history({ verbose: true });
     var last = verbose.length ? verbose[verbose.length - 1] : null;
     var record = {
+      premove: !!lastHumanWasPremove,
       san: String(move || "").replace(/^Berserk:\s*/, ""),
       ply: verbose.length - 1,
       side: moverSide,
@@ -179,6 +180,7 @@
       icon: "./assets/classification/" + (iconFiles[label] || "cls-good.svg")
     };
     reviewRecords.push(record);
+    lastHumanWasPremove = false;
     if (Number.isFinite(moveAccuracy)) {
       sideAccuracy[moverSide].total += moveAccuracy;
       sideAccuracy[moverSide].count++;
@@ -228,6 +230,7 @@
             cell.appendChild(icon);
             cell.title = record.label + (Number.isFinite(record.accuracy) ? " · " + Math.round(record.accuracy) + "% move accuracy" : "");
             cell.classList.add("reviewed");
+            if (record.premove) { cell.classList.add("premove-mark"); cell.title += " · PREMOVE"; }
           }
           var notation = document.createElement("span");
           notation.textContent = move.san;
@@ -275,6 +278,8 @@
     }
     lastHumanMove = move.san;
     lastHumanBeforeFen = beforeFen;
+    lastHumanWasPremove = true;
+    premoveHistory.push({from:queued.from,to:queued.to,ply:game.history().length-1});
     renderGame();
     makeEngineMove();
     return true;
@@ -355,6 +360,7 @@
   }
 
   function finalMessage() {
+    if (manualResult) return manualResult;
     if (game.in_checkmate()) {
       return (game.turn() === "w" ? "Black" : "White") + " wins by checkmate";
     }
@@ -366,7 +372,8 @@
   }
 
   function renderGame() {
-    if (board) board.position(game.fen(), false);\n    renderPremoveHighlight();
+    if (board) board.position(game.fen(), false);
+    highlightPremoveSquares();\n    renderPremoveHighlight();
     var outcome = finalMessage();
     turnLabel.textContent = outcome ? outcome : (engineBusy ? "Berserk is thinking" : (game.turn() === "w" ? "White to move" : "Black to move"));
     moveCount.textContent = "Move " + (Math.floor(game.history().length / 2) + 1);
@@ -376,6 +383,7 @@
       : premoveStatus.textContent;
     if (outcome) {
       gameStatus.textContent = outcome;
+      if (game.history().length && !reportVisible && !manualResult) showPostgameReport(outcome);
     } else if (!gameStarted) {
       gameStatus.textContent = "Ready";
     } else if (engineBusy) {
@@ -550,6 +558,8 @@
     qualityMove.textContent = "—";
     qualityDetail.textContent = "Berserk will compare your move with the evaluation before and after it.";
     game.reset();
+    manualResult = null; activeGamePgn = ""; importedGame = false; premoveHistory = []; lastHumanWasPremove = false;
+    if ($("postgame-panel")) $("postgame-panel").hidden = true;
     arrows = [];
     arrowStart = null;
     arrowPendingStart = null;
@@ -602,8 +612,189 @@
       : "—";
     updateSideAccuracy();
     renderGame();
+    reportVisible = false; if ($("postgame-panel")) $("postgame-panel").hidden = true;
     if (gameStarted && game.turn() !== humanSide && !game.game_over()) makeEngineMove();
     else if (gameStarted && !game.game_over()) prepareHumanBaseline();
+  }
+
+
+  // Post-game, import and premove report state.
+  var manualResult = null;
+  var lastHumanWasPremove = false;
+  var premoveHistory = [];
+  var activeGamePgn = "";
+  var activeGameSource = "Berserk";
+  var importedGame = false;
+  var reportVisible = false;
+
+  function clearPremoveHighlights() {
+    document.querySelectorAll(".premove-square").forEach(function (node) { node.classList.remove("premove-square"); });
+  }
+  function highlightPremoveSquares() {
+    clearPremoveHighlights();
+    if (pendingPremove) {
+      ["." + "square-" + pendingPremove.from, "." + "square-" + pendingPremove.to].forEach(function (selector) {
+        var square = document.querySelector(selector);
+        if (square) square.classList.add("premove-square");
+      });
+    }
+    if (premoveHistory.length) {
+      var latest = premoveHistory[premoveHistory.length - 1];
+      [latest.from, latest.to].forEach(function (name) {
+        var square = document.querySelector(".square-" + name);
+        if (square) square.classList.add("premove-square");
+      });
+    }
+  }
+  function showPostgameReport(reason) {
+    var panel = $("postgame-panel");
+    if (!panel) return;
+    var outcome = manualResult || finalMessage() || reason || "Game complete";
+    $("postgame-title").textContent = outcome;
+    $("postgame-subtitle").textContent = activeGameSource + " · " + new Date().toLocaleDateString();
+    $("postgame-result").textContent = outcome.toUpperCase();
+    $("report-white-accuracy").textContent = $("white-accuracy").textContent;
+    $("report-black-accuracy").textContent = $("black-accuracy").textContent;
+    $("report-moves").textContent = String(Math.ceil(game.history().length / 2));
+    var values = [Number.parseInt($("white-accuracy").textContent,10),Number.parseInt($("black-accuracy").textContent,10)].filter(Number.isFinite);
+    $("report-rating").textContent = values.length ? String(Math.round(values.reduce(function(a,b){return a+b;},0)/values.length*35)) : "—";
+    panel.hidden = false;
+    reportVisible = true;
+  }
+  function finishGame(result, reason) {
+    if (game.game_over() || manualResult) return;
+    turnToken++;
+    engineBusy = false;
+    pendingPremove = null;
+    pendingEngineReview = null;
+    manualResult = result;
+    premoveStatus.textContent = "";
+    gameStarted = false;
+    gameStatus.textContent = result;
+    turnLabel.textContent = result;
+    if (reason) qualityDetail.textContent = reason;
+    renderGame();
+    showPostgameReport(result);
+  }
+  function getPgn() {
+    if (activeGamePgn) return activeGamePgn;
+    try { return game.pgn({ max_width: 80, newline_char: "\n" }) + (manualResult ? "\n\n[Result \"" + (manualResult.indexOf("1-0")>=0?"1-0":manualResult.indexOf("0-1")>=0?"0-1":"1/2-1/2") + "\"]" : ""); }
+    catch (_) { return game.pgn(); }
+  }
+  function parseImportedPgn(pgn, source) {
+    if (!pgn || !pgn.trim()) throw new Error("No PGN content was provided.");
+    var parsed = new Chess();
+    if (!parsed.load_pgn(pgn, { sloppy: true })) throw new Error("This PGN could not be read. Check that it contains valid chess moves.");
+    activeGamePgn = pgn;
+    activeGameSource = source || "Imported game";
+    importedGame = true;
+    manualResult = null;
+    pendingPremove = null;
+    premoveHistory = [];
+    turnToken++;
+    engineBusy = false;
+    gameStarted = false;
+    game.reset();
+    var moves = parsed.history({ verbose: true });
+    var headers = parsed.header();
+    var result = headers.Result || (parsed.game_over() ? (parsed.in_checkmate() ? (parsed.turn()==="w"?"0-1":"1-0") : "1/2-1/2") : "*");
+    var finalFen = parsed.fen();
+    game.load_pgn(pgn, { sloppy: true });
+    reviewRecords = [];
+    sideAccuracy = { w: { total: 0, count: 0 }, b: { total: 0, count: 0 } };
+    humanAccuracyTotal = 0; humanAccuracyCount = 0;
+    updateSideAccuracy();
+    $("accuracy-value").textContent = "—";
+    $("evaluation-value").textContent = "—";
+    if ($("postgame-panel")) $("postgame-panel").hidden = true;
+    renderGame();
+    $("import-status").textContent = "Loaded " + moves.length + " half-moves. " + (engineReady ? "Starting Berserk move-by-move analysis…" : "Game loaded; engine analysis will be available when Berserk is ready.");
+    if (!engineReady) { showPostgameReport("Imported game loaded · engine not ready"); return; }
+    analyseImportedMoves(pgn, source, moves, result, finalFen);
+  }
+  async function analyseImportedMoves(pgn, source, moves, result, finalFen) {
+    var token = turnToken;
+    var replay = new Chess();
+    reviewRecords = [];
+    sideAccuracy = { w: { total: 0, count: 0 }, b: { total: 0, count: 0 } };
+    var whiteTotal=0,whiteCount=0,blackTotal=0,blackCount=0;
+    try {
+      for (var i=0;i<moves.length;i++) {
+        if (token!==turnToken) return;
+        var beforeFen=replay.fen();
+        var beforeResult=await engine.search(beforeFen,220,1,token);
+        if (token!==turnToken) return;
+        var before=scoreToWhitePerspective(scoreFromResult(beforeResult),beforeFen);
+        replay.move({from:moves[i].from,to:moves[i].to,promotion:moves[i].promotion||"q"});
+        var afterFen=replay.fen();
+        var afterResult=await engine.search(afterFen,220,1,token);
+        if (token!==turnToken) return;
+        var after=scoreToWhitePerspective(scoreFromResult(afterResult),afterFen);
+        if (before===null || after===null) continue;
+        var side=moves[i].color;
+        var loss=Math.max(0,side==="b"?after-before:before-after);
+        var label=loss<=10?"Best":loss<=25?"Excellent":loss<=50?"Good":loss<=100?"Inaccuracy":loss<=200?"Mistake":"Blunder";
+        var accuracy=Math.max(0,Math.min(100,100*Math.exp(-loss/300)));
+        var icons={"Best":"cls-great.svg","Excellent":"cls-excellent.svg","Good":"cls-good.svg","Inaccuracy":"cls-inaccuracy.svg","Mistake":"cls-mistake.svg","Blunder":"cls-blunder.svg"};
+        reviewRecords.push({san:moves[i].san,ply:i,side:side,label:label,accuracy:accuracy,loss:loss,fen:afterFen,from:moves[i].from,to:moves[i].to,icon:"./assets/classification/"+icons[label]});
+        if(side==="w"){whiteTotal+=accuracy;whiteCount++;}else{blackTotal+=accuracy;blackCount++;}
+        $("import-status").textContent="Analysing move "+(i+1)+" of "+moves.length+" · "+label;
+        renderMoveReview();
+      }
+      if(token!==turnToken)return;
+      game.load_pgn(pgn,{sloppy:true});
+      $("white-accuracy").textContent=whiteCount?Math.round(whiteTotal/whiteCount)+"%":"—";
+      $("black-accuracy").textContent=blackCount?Math.round(blackTotal/blackCount)+"%":"—";
+      $("accuracy-value").textContent="—";
+      updateEvaluation(scoreToWhitePerspective(scoreFromResult(await engine.search(finalFen,300,1,token)),finalFen));
+      renderGame();
+      $("import-status").textContent="Analysis complete · "+moves.length+" half-moves reviewed.";
+      showPostgameReport(result==="1-0"?"White wins":result==="0-1"?"Black wins":result==="1/2-1/2"?"Draw":"Game review complete");
+    } catch(error) {
+      if(token===turnToken)$("import-status").textContent="Analysis stopped: "+(error.message||String(error));
+    }
+  }
+  function showImportedGames(games, platform) {
+    var list=$("import-games"); list.textContent="";
+    if(!games.length){$("import-status").textContent="No public games found for that username.";return;}
+    $("import-status").textContent="Choose a game to analyze ("+games.length+" found).";
+    games.slice(-20).reverse().forEach(function(item,index){
+      var row=document.createElement("div");row.className="import-game-row";
+      var meta=document.createElement("div");meta.className="import-game-meta";
+      var title=document.createElement("strong");title.textContent=(item.white||"White")+" vs "+(item.black||"Black");
+      var sub=document.createElement("span");sub.textContent=[item.date||"Recent game",item.time_class||item.speed||"Chess",item.result||"*"].join(" · ");
+      meta.appendChild(title);meta.appendChild(sub);
+      var button=document.createElement("button");button.className="button";button.textContent="Analyze";
+      button.addEventListener("click",function(){try{parseImportedPgn(item.pgn,platform);}catch(e){$("import-status").textContent=e.message;}});
+      row.appendChild(meta);row.appendChild(button);list.appendChild(row);
+    });
+  }
+  async function fetchChessCom(username) {
+    var archives=await fetch("https://api.chess.com/pub/player/"+encodeURIComponent(username)+"/games/archives").then(function(r){if(!r.ok)throw new Error("Chess.com username or API request failed ("+r.status+").");return r.json();});
+    var urls=(archives.archives||[]).slice(-3).reverse();var games=[];
+    for(var i=0;i<urls.length&&games.length<30;i++){var data=await fetch(urls[i]).then(function(r){if(!r.ok)throw new Error("Could not load a Chess.com archive.");return r.json();});games=games.concat((data.games||[]).filter(function(g){return g.pgn;}));}
+    return games.slice(-30).map(function(g){return {pgn:g.pgn,white:g.white&&g.white.username||"White",black:g.black&&g.black.username||"Black",date:g.end_time?new Date(g.end_time*1000).toLocaleDateString():"Recent",time_class:g.time_class,result:g.white&&g.white.result||g.black&&g.black.result||"*"};});
+  }
+  async function fetchLichess(username) {
+    var response=await fetch("https://lichess.org/api/games/user/"+encodeURIComponent(username)+"?max=20&moves=true&tags=true&clocks=false&evals=false", {headers:{Accept:"application/x-ndjson"}});
+    if(!response.ok)throw new Error("Lichess username or API request failed ("+response.status+").");
+    var body=await response.text();
+    return body.split(/\r?\n/).filter(Boolean).map(function(line){var g=JSON.parse(line);return {pgn:g.pgn||"",white:g.players&&g.players.white&&g.players.white.user&&g.players.white.user.name||"White",black:g.players&&g.players.black&&g.players.black.user&&g.players.black.user.name||"Black",date:g.createdAt?new Date(g.createdAt).toLocaleDateString():"Recent",speed:g.speed,result:g.winner||"Draw"};}).filter(function(g){return g.pgn;});
+  }
+  async function importWorldChess(url) {
+    if(!/^https?:\/\//i.test(url))throw new Error("Paste a public WorldChess game or PGN download URL. For username history, export a game as PGN from your WorldChess profile archive.");
+    var response=await fetch(url);if(!response.ok)throw new Error("WorldChess export could not be fetched. Download the PGN from the game archive and upload it here.");
+    var text=await response.text();if(!text.includes("1.")&&!text.includes("[Event"))throw new Error("The link did not return PGN. Download the game's PGN from WorldChess and upload or paste it.");
+    parseImportedPgn(text,"WorldChess");
+  }
+  function bindImportButton(id,fn,inputId){
+    $(id).addEventListener("click",async function(){
+      var value=$(inputId).value.trim();if(!value){$("import-status").textContent="Enter a username or link first.";return;}
+      $(id).disabled=true;$("import-status").textContent="Fetching public games…";
+      try{fn(value).then(function(games){showImportedGames(games,id.indexOf("chesscom")>=0?"Chess.com":"Lichess");}).catch(function(e){$("import-status").textContent=e.message+" You can also paste a PGN below.";});}
+      catch(e){$("import-status").textContent=e.message;}
+      finally{setTimeout(function(){$(id).disabled=false;},500);}
+    });
   }
 
   var engine = new BerserkEngine({
@@ -670,7 +861,7 @@
       lastHumanMove = move.san;
       lastHumanBeforeFen = beforeFen;
       renderGame();
-      if (game.game_over()) return;
+      if (game.game_over()) { showPostgameReport(finalMessage()); return; }
       makeEngineMove();
     },
     onSnapEnd: function () {
@@ -761,6 +952,16 @@
   $("start-btn").addEventListener("click", startGame);
   $("new-btn").addEventListener("click", startGame);
   $("undo-btn").addEventListener("click", undoTurn);
+  if ($("resign-btn")) $("resign-btn").addEventListener("click",function(){if(!gameStarted||!game.history().length)return;if(confirm("Resign this game?"))finishGame(humanSide==="w"?"Black wins by resignation":"White wins by resignation","You resigned. Review the game to learn from it.");});
+  if ($("draw-btn")) $("draw-btn").addEventListener("click",function(){if(!gameStarted||!game.history().length)return;if(confirm("Agree to a draw and end this game?"))finishGame("Draw by agreement","The game ended by mutual draw agreement.");});
+  if ($("fetch-chesscom")) bindImportButton("fetch-chesscom",fetchChessCom,"chesscom-username");
+  if ($("fetch-lichess")) bindImportButton("fetch-lichess",fetchLichess,"lichess-username");
+  if ($("fetch-worldchess")) $("fetch-worldchess").addEventListener("click",function(){importWorldChess($("worldchess-pgn-url").value.trim()).catch(function(e){$("import-status").textContent=e.message;});});
+  if ($("load-pgn")) $("load-pgn").addEventListener("click",function(){try{parseImportedPgn($("pgn-text").value,"PGN import");}catch(e){$("import-status").textContent=e.message;}});
+  if ($("pgn-file")) $("pgn-file").addEventListener("change",function(){var file=this.files&&this.files[0];if(!file)return;var reader=new FileReader();reader.onload=function(){ $("pgn-text").value=String(reader.result||""); };reader.readAsText(file);});
+  if ($("review-game-btn")) $("review-game-btn").addEventListener("click",function(){$("board").scrollIntoView({behavior:"smooth",block:"center"});});
+  if ($("download-pgn-btn")) $("download-pgn-btn").addEventListener("click",function(){var blob=new Blob([getPgn()],{type:"application/x-chess-pgn"});var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="berserk-game.pgn";a.click();URL.revokeObjectURL(a.href);});
+  if ($("copy-pgn-btn")) $("copy-pgn-btn").addEventListener("click",function(){var pgn=getPgn();if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(pgn).then(function(){$("import-status").textContent="PGN copied."}).catch(function(){$("import-status").textContent="Copy unavailable; use Download PGN."});});
   function showPostgame(resultText, detail) {
     var panel = $("postgame-panel");
     if (!panel) return;
