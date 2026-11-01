@@ -15,6 +15,7 @@
     this.onStatus = typeof options.onStatus === "function" ? options.onStatus : function () {};
     this.onInfo = typeof options.onInfo === "function" ? options.onInfo : function () {};
     this.onError = typeof options.onError === "function" ? options.onError : function () {};
+    this.onProgress = typeof options.onProgress === "function" ? options.onProgress : function () {};
     this.pending = new Map();
     this.sequence = 0;
     this.stopped = false;
@@ -44,6 +45,8 @@
           self.onStatus("ready");
           self.resolveReady(self);
         }
+      } else if (message.type === "progress") {
+        if (!self.settled) self.onProgress(message.loaded, message.total);
       } else if (message.type === "init-error") {
         self.fail(new Error(message.error || "Berserk WASM initialization failed."));
       } else if (message.type === "info") {
