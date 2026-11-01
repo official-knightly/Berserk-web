@@ -63,17 +63,24 @@
     return (value > 0 ? "+" : "") + value.toFixed(2);
   }
 
-  function updateEvaluation(sideToMoveScore) {
-    if (sideToMoveScore === null || !Number.isFinite(sideToMoveScore)) {
+  // Berserk's UCI score is from the side-to-move perspective.
+  // Convert it immediately to White's perspective so async searches,
+  // move reviews and the evaluation bar all use the same sign convention.
+  function scoreToWhitePerspective(score, fen) {
+    if (score === null || !Number.isFinite(score)) return null;
+    var activeSide = String(fen || game.fen()).split(" ")[1];
+    return activeSide === "b" ? -score : score;
+  }
+
+  function updateEvaluation(whiteScore) {
+    if (whiteScore === null || !Number.isFinite(whiteScore)) {
       evaluationValue.textContent = "—";
       if (evaluationIndicator) evaluationIndicator.style.left = "50%";
       return;
     }
-    // The score is from the side-to-move perspective; show White's POV.
-    var whiteScore = game.turn() === "w" ? sideToMoveScore : -sideToMoveScore;
     evaluationValue.textContent = formatEval(whiteScore);
-    // Keep the visual scale readable: +/-5 pawns spans the full bar.
     var clamped = Math.max(-500, Math.min(500, whiteScore));
+    // Positive = White advantage (left); negative = Black advantage (right).
     var position = 50 - (clamped / 500) * 50;
     if (evaluationIndicator) evaluationIndicator.style.left = position + "%";
   }
@@ -102,7 +109,7 @@
     var token = turnToken;
     baselinePromise = engine.search(fen, 350, 1, token).then(function (result) {
       if (token !== turnToken || game.fen() !== fen) return null;
-      analysisBaseline = scoreFromResult(result);
+      analysisBaseline = scoreToWhitePerspective(scoreFromResult(result), fen);
       updateEvaluation(analysisBaseline);
       return analysisBaseline;
     }).catch(function () {
@@ -112,14 +119,18 @@
     return baselinePromise;
   }
 
-  function showMoveReview(move, before, after, isHumanMove) {
+  function showMoveReview(move, beforeWhite, afterWhite, isHumanMove, moverSide) {
     qualityMove.textContent = move || "Last move";
-    if (before === null || after === null) {
+    if (beforeWhite === null || afterWhite === null ||
+        !Number.isFinite(beforeWhite) || !Number.isFinite(afterWhite)) {
       qualityLabel.textContent = "Not rated";
       qualityDetail.textContent = "Berserk could not compare both positions.";
       return;
     }
-    var loss = Math.max(0, before - after);
+    // A move loses evaluation from the mover's own perspective.
+    var loss = Math.max(0, moverSide === "b"
+      ? afterWhite - beforeWhite
+      : beforeWhite - afterWhite);
     var moveAccuracy = updateAccuracy(loss, !!isHumanMove);
 
     var label;
@@ -130,7 +141,7 @@
     else if (loss <= 200) label = "Mistake";
     else label = "Blunder";
     qualityLabel.textContent = label;
-    qualityDetail.textContent = "Eval: " + formatEval(before) + " → " + formatEval(after) +
+    qualityDetail.textContent = "Eval: " + formatEval(beforeWhite) + " → " + formatEval(afterWhite) +
       " · loss " + Math.round(loss) + " cp" +
       (moveAccuracy === undefined ? "" : " · accuracy " + Math.round(moveAccuracy) + "%");
   }
@@ -138,7 +149,7 @@
   function completeEngineMoveReview() {
     if (!pendingEngineReview) return;
     showMoveReview("Berserk: " + pendingEngineReview.move, pendingEngineReview.before,
-      analysisBaseline === null ? null : -analysisBaseline, false);
+      analysisBaseline, false, pendingEngineReview.side);
     pendingEngineReview = null;
   }
 
@@ -344,7 +355,7 @@
       var beforeScore = analysisBaseline;
       if (lastHumanMove && beforeScore === null && lastHumanBeforeFen) {
         var beforeResult = await engine.search(lastHumanBeforeFen, 350, 1, requestToken);
-        beforeScore = scoreFromResult(beforeResult);
+        beforeScore = scoreToWhitePerspective(scoreFromResult(beforeResult), lastHumanBeforeFen);
       }
       var requestedMultiPV = Math.max(1, Math.min(8, Math.ceil((3000 - selectedElo()) / 400) + 1));
       var result = await engine.search(game.fen(), selectedThinkMs(), requestedMultiPV, requestToken);
@@ -352,7 +363,8 @@
       engineBusy = false;
       if (lastHumanMove) {
         var enginePerspective = scoreFromResult(result);
-        showMoveReview(lastHumanMove, beforeScore, enginePerspective === null ? null : -enginePerspective, true);
+        var afterWhite = scoreToWhitePerspective(enginePerspective, game.fen());
+        showMoveReview(lastHumanMove, beforeScore, afterWhite, true, humanSide);
         lastHumanMove = null;
         lastHumanBeforeFen = null;
       }
@@ -366,7 +378,11 @@
         renderGame();
         return;
       }
-      pendingEngineReview = { move: played.san, before: scoreFromResult(result) };
+      pendingEngineReview = {
+        move: played.san,
+        before: scoreToWhitePerspective(scoreFromResult(result), game.fen()),
+        side: game.turn() === "w" ? "b" : "w"
+      };
       renderGame();
       analysisBaseline = null;
       analysisBaselineFen = null;
