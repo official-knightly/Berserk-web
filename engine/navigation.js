@@ -3,6 +3,7 @@
   var views=Array.from(document.querySelectorAll("[data-app-view]"));
   var nav=Array.from(document.querySelectorAll("[data-view-target]"));
   var review=document.getElementById("import-review");
+  var postgame=document.getElementById("postgame-panel");
   function setView(name){
     views.forEach(function(view){view.hidden=view.getAttribute("data-app-view")!==name;});
     if(review){
@@ -10,6 +11,12 @@
         if(!review.hidden)review.dataset.wasOpen="true";
         review.hidden=true;
       }else if(review.dataset.wasOpen==="true")review.hidden=false;
+    }
+    if(postgame){
+      if(name!=="play"){
+        if(!postgame.hidden)postgame.dataset.wasOpen="true";
+        postgame.hidden=true;
+      }else if(postgame.dataset.wasOpen==="true")postgame.hidden=false;
     }
     nav.forEach(function(button){var active=button.getAttribute("data-view-target")===name;button.classList.toggle("active",active);button.setAttribute("aria-current",active?"page":"false");});
     if(name==="live")window.dispatchEvent(new Event("berserk:live-visible"));
@@ -25,6 +32,8 @@
   });
   var closeReview=document.getElementById("close-import-review");
   if(closeReview)closeReview.addEventListener("click",function(){if(review)review.dataset.wasOpen="false";});
+  var closePostgame=document.getElementById("close-postgame");
+  if(closePostgame)closePostgame.addEventListener("click",function(){if(postgame)postgame.dataset.wasOpen="false";});
   window.addEventListener("berserk:open-review",function(){if(review)review.dataset.wasOpen="true";setView("analysis");});
   setView("play");
 })();
