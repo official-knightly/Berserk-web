@@ -1,7 +1,7 @@
 (function () {
 "use strict";
 var $=function(id){return document.getElementById(id);};
-var reviewGame=null, reviewBoard=null, reviewMoves=[], reviewPgn="", reviewTitle="", reviewPly=0, reviewEngine=null;
+var reviewGame=null, reviewBoard=null, reviewMoves=[], reviewPgn="", reviewTitle="", reviewPly=0, reviewEngine=null, reviewEvaluations=[];
 function status(message){$("import-status").textContent=message;}
 function safeText(value){return String(value||"").replace(/[<>]/g,"");}
 function pgnHeaders(pgn){var out={};String(pgn).replace(/^\[(\w+)\s+"([^"]*)"\]\s*$/gm,function(_,k,v){out[k]=v;});return out;}
@@ -9,9 +9,9 @@ function openReview(pgn,title){
  if(!pgn||!String(pgn).trim()){status("This game has no PGN to review.");return;}
  try{reviewGame=new Chess();if(!reviewGame.load_pgn(pgn,{sloppy:true}))throw new Error("The PGN could not be parsed.");}
  catch(e){status("Invalid PGN: "+e.message);return;}
- reviewPgn=pgn;reviewTitle=title||"Imported game";reviewMoves=reviewGame.history({verbose:true});reviewPly=0;
+ reviewPgn=pgn;reviewTitle=title||"Imported game";reviewMoves=reviewGame.history({verbose:true});reviewPly=0;reviewEvaluations=[];renderEvaluationGraph([]);
  var h=pgnHeaders(pgn);
- $("import-review-title").textContent=reviewTitle;$("review-white").textContent=h.White||"White";$("review-black").textContent=h.Black||"Black";$("review-result").textContent=h.Result||"*";$("review-opening").textContent=h.Opening||h.ECO||"Imported game";
+ $("import-review-title").textContent=reviewTitle;$("review-white").textContent=h.White||"White";$("review-black").textContent=h.Black||"Black";$("review-result").textContent=h.Result||"*";$("review-opening").textContent=h.Opening||h.ECO||"Imported game";if($("review-result-chip"))$("review-result-chip").textContent="Result · "+(h.Result||"*");if($("review-opening-detail"))$("review-opening-detail").textContent=h.Opening||h.ECO||"Not included in PGN";
  $("import-review").hidden=false;$("import-review").scrollIntoView({behavior:"smooth",block:"start"});
  if(!reviewBoard){reviewBoard=Chessboard("review-board",{position:"start",draggable:false,showNotation:true,pieceTheme:"https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png"});}
  renderReview();if(reviewEngine)reviewEngine.terminate();
@@ -27,6 +27,15 @@ function drawReviewArrow(uci){
  function point(square){var file=square.charCodeAt(0)-97,rank=Number(square.charAt(1));return reviewBoard.orientation()==="black"?{x:7-file+.5,y:rank-1+.5}:{x:file+.5,y:8-rank+.5};}
  var a=point(uci.slice(0,2)),b=point(uci.slice(2,4)),line=document.createElementNS(ns,"line");
  line.setAttribute("x1",a.x);line.setAttribute("y1",a.y);line.setAttribute("x2",b.x);line.setAttribute("y2",b.y);line.setAttribute("stroke","#b7d4a8");line.setAttribute("stroke-width",".14");line.setAttribute("stroke-linecap","round");line.setAttribute("marker-end","url(#review-arrow-head)");svg.appendChild(line);
+}
+function renderEvaluationGraph(points){
+ var svg=$("review-eval-graph"),line=$("review-eval-line"),area=$("review-eval-area");if(!svg||!line||!area)return;
+ if(!points||!points.length){line.setAttribute("points","");area.setAttribute("d","");$("review-graph-state").textContent="Run full analysis to build graph";$("review-graph-plies").textContent="0 positions analyzed";svg.setAttribute("aria-label","Evaluation graph will appear after full game analysis");return;}
+ var width=696,left=12,top=25,height=100,mid=75,scale=800;
+ var coords=points.map(function(p,i){var x=left+(points.length===1?width/2:(i/(points.length-1))*width);var score=Math.max(-scale,Math.min(scale,p.score));var y=mid-(score/scale)*(height/2);return {x:x,y:y};});
+ var poly=coords.map(function(p){return p.x.toFixed(1)+","+p.y.toFixed(1);}).join(" ");line.setAttribute("points",poly);
+ area.setAttribute("d","M "+coords[0].x+" "+mid+" L "+coords.map(function(p){return p.x+" "+p.y;}).join(" L ")+" L "+coords[coords.length-1].x+" "+mid+" Z");
+ $("review-graph-state").textContent="Engine analysis complete";$("review-graph-plies").textContent=points.length+" positions analyzed";svg.setAttribute("aria-label","Evaluation timeline based on "+points.length+" Berserk engine evaluations");
 }
 function renderReview(){
  var replay=new Chess();for(var i=0;i<reviewPly;i++)replay.move(reviewMoves[i]);
@@ -57,7 +66,7 @@ async function analyzeFullGame(){
  var button=$("review-analyze-game");button.disabled=true;
  try{
   await reviewEngine.ready;
-  var replay=new Chess(), grades=[], total=reviewMoves.length;
+  var replay=new Chess(), grades=[], total=reviewMoves.length, evaluations=[];
   for(var i=0;i<total;i++){
    $("review-best").textContent="Berserk reviewing move "+(i+1)+" of "+total+"…";
    var beforeFen=replay.fen();
@@ -70,11 +79,13 @@ async function analyzeFullGame(){
    var after=afterResult.candidates&&afterResult.candidates[0]?afterResult.candidates[0].scoreCp:afterResult.scoreCp;
    if(replay.turn()==="b")after=-after;
    var loss=Number.isFinite(before)&&Number.isFinite(after)?Math.max(0,reviewMoves[i].color==="b"?after-before:before-after):null;
+   if(Number.isFinite(after))evaluations.push({ply:i+1,score:after});
    var label=loss===null?"Not rated":loss<=10?"Best":loss<=25?"Excellent":loss<=50?"Good":loss<=100?"Inaccuracy":loss<=200?"Mistake":"Blunder";
    grades.push({label:label,loss:loss});
    var moveButton=$("import-review-moves").children[i];
    if(moveButton){moveButton.title=label+(loss===null?"":" · "+Math.round(loss)+" cp loss");moveButton.classList.add("grade-"+label.toLowerCase().replace(/\s+/g,"-"));moveButton.textContent=moveButton.textContent.replace(/ · (Best|Excellent|Good|Inaccuracy|Mistake|Blunder|Not rated)$/,"")+" · "+label;}
   }
+  reviewEvaluations=evaluations;renderEvaluationGraph(reviewEvaluations);if($("review-analysis-state"))$("review-analysis-state").textContent="Complete";if($("review-reviewed-count"))$("review-reviewed-count").textContent=grades.length;if($("review-white-snapshot"))$("review-white-snapshot").textContent=$("review-white-accuracy").textContent;if($("review-black-snapshot"))$("review-black-snapshot").textContent=$("review-black-accuracy").textContent;
   var counts={Best:0,Excellent:0,Good:0,Inaccuracy:0,Mistake:0,Blunder:0};
   grades.forEach(function(g){if(counts[g.label]!==undefined)counts[g.label]++;});
   $("review-best").textContent="Full review complete · "+counts.Best+" best · "+counts.Excellent+" excellent · "+counts.Good+" good · "+counts.Inaccuracy+" inaccuracies · "+counts.Mistake+" mistakes · "+counts.Blunder+" blunders.";
