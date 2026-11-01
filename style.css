@@ -420,3 +420,192 @@ input[type=range]{accent-color:var(--accent);height:18px}
 #review-arrow-layer{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:7}
 
 .layout[hidden]{display:none!important}
+
+
+
+/* ─────────────────────────────────────────────────────────────
+   BERSERK UI REFRESH — compact chess-lab layout
+   Visual direction: calm charcoal surfaces, clear board focus,
+   restrained sage accents, and dense-but-readable analysis.
+   ───────────────────────────────────────────────────────────── */
+:root{
+  --bg:#111411;--panel:#191e1a;--panel2:#202720;--panel3:#252e27;
+  --line:#303a32;--text:#edf1eb;--muted:#9ba79b;
+  --accent:#b6d5a7;--accent-strong:#d0e9bf;--accent-dark:#263b2a;
+  --danger:#d77c76;--shadow:0 18px 55px rgba(0,0,0,.28);
+  --radius:13px;
+}
+html{scroll-behavior:smooth}
+body{background:radial-gradient(ellipse at 50% -25%,#263229 0,transparent 48%),var(--bg);letter-spacing:-.012em}
+.topbar{position:sticky;top:0;z-index:50;height:68px;background:rgba(17,20,17,.92);backdrop-filter:blur(18px);border-bottom:1px solid rgba(180,205,177,.12);padding:0 clamp(16px,4vw,64px)}
+.brand{letter-spacing:.13em;font-size:12px}
+.brand-mark{width:34px;height:34px;border-radius:10px;box-shadow:0 5px 18px rgba(182,213,167,.16)}
+.main-nav{display:flex;align-items:center;gap:5px}
+.nav-link{border:1px solid transparent;background:transparent;color:#aab5aa;border-radius:9px;padding:9px 15px;font-size:12px;font-weight:700;transition:background .18s,border-color .18s,color .18s}
+.nav-link:hover{background:#202820;color:#fff}
+.nav-link.active{background:#26372a;border-color:#3e5740;color:var(--accent-strong);box-shadow:inset 0 0 0 1px rgba(182,213,167,.05)}
+.status{font-size:11px}
+.layout{width:min(1440px,100%);max-width:1440px;margin:26px auto 54px;padding:0 clamp(14px,2.8vw,42px);grid-template-columns:minmax(0,1fr) 318px;gap:22px}
+.play-area{min-width:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-content:start}
+.board-heading{grid-column:1/-1;margin:0 0 2px;align-items:center}
+.board-heading h1{font-size:clamp(23px,2.5vw,30px);font-weight:760;letter-spacing:-.055em}
+.eyebrow{font-size:9px;letter-spacing:.19em;color:#9dac9b}
+.board-actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}
+.button{border-radius:9px;padding:10px 14px;font-size:11px;font-weight:760;letter-spacing:.005em;box-shadow:0 3px 10px rgba(0,0,0,.12)}
+.button:focus-visible,.nav-link:focus-visible,.side-option:focus-visible,.review-tab:focus-visible{outline:2px solid var(--accent-strong);outline-offset:2px}
+.button.secondary{background:#222a23;border-color:#38443a;color:#e0e9df}
+.button.secondary:hover{background:#2a352b;border-color:#536b54;filter:none}
+.button:not(.secondary):hover{background:#c7e3b8;border-color:#c7e3b8;filter:none;transform:translateY(-1px)}
+.board-shell{grid-column:1/-1;width:min(100%,760px);max-width:760px;margin:0 auto;border-radius:12px;border:1px solid #3b453d;box-shadow:0 22px 60px rgba(0,0,0,.38);background:#171c18}
+.board-footer{grid-column:1/-1;width:min(100%,760px);max-width:760px;margin:-3px auto 0;padding:0 3px;color:#aab5aa;font-size:11px}
+.board-footer span:first-child{color:var(--accent-strong);font-weight:700}
+.play-area>.review-card{grid-column:1;grid-row:auto}
+.play-area>.accuracy-card{grid-column:2;grid-row:auto}
+.info-card,.moves-panel,.engine-card,.postgame-panel,.import-hub,.import-review,.live-workspace{background:linear-gradient(145deg,rgba(31,38,32,.98),rgba(24,29,25,.98));border:1px solid #303a32;border-radius:var(--radius);box-shadow:0 10px 32px rgba(0,0,0,.14)}
+.info-card{padding:15px 16px}
+.panel-title{font-size:11px;letter-spacing:.035em;color:#cbd5c9;margin-bottom:10px}
+.quality-heading{min-height:28px}
+.quality-classification strong{font-size:13px}
+.quality-detail{color:#aab5aa;font-size:11px;line-height:1.55}
+.analysis-metric strong{font-size:20px;letter-spacing:-.04em}
+.analysis-metric span,.player-accuracy,.evaluation-labels{font-size:10px;color:#9eaa9e}
+.evaluation-track{height:7px;border-radius:20px;background:#0e110f;overflow:hidden;margin-top:14px}
+.evaluation-white,.evaluation-black{border-radius:20px}
+.moves-panel{grid-column:1/-1;width:100%;max-width:none;margin:0;padding:15px 17px}
+.moves-panel-heading{display:flex;align-items:center;justify-content:space-between}
+.review-count{font-size:10px;color:#94a094}
+.moves-list{min-height:26px;line-height:1.8}
+.move-tools{grid-column:1/-1;width:100%;max-width:none;margin:0;display:flex;flex-wrap:wrap;gap:7px}
+.move-tools .button{flex:1 1 105px}
+.board-hint,.premove-status,.hint-status{grid-column:1/-1;width:100%;max-width:none;margin:0;color:#8e9a8f;font-size:10px;line-height:1.55}
+.hint-status{padding:9px 12px;background:#1b241d;border:1px solid #2e3e30;border-radius:9px}
+.side-panel{gap:12px;position:sticky;top:84px}
+.engine-card{padding:19px}
+.engine-brand{margin-bottom:20px}
+.berserk-logo{width:53px;height:53px;border-radius:12px;background:#202820;border-color:#465448;padding:6px}
+.engine-brand h2{font-size:23px;letter-spacing:-.05em}
+.subtext{font-size:10px}
+.elo-row{padding:12px 0;border-top:1px solid #303a32;border-bottom:1px solid #303a32;margin-bottom:15px}
+.elo-row strong{font-size:24px}
+.control-label{font-size:10px;color:#c4cec3;margin:13px 0 7px}
+input[type=range]{accent-color:var(--accent);height:4px}
+.range-labels{font-size:9px;color:#839083}
+.side-choice{gap:7px}
+.side-option{border:1px solid #3b473d;border-radius:9px;background:#202720;color:#c6d0c4;padding:10px 8px;font-size:11px;font-weight:700}
+.side-option.active{background:#2a3b2c;border-color:#789274;color:#e3f2dc;box-shadow:inset 0 0 0 1px rgba(182,213,167,.12)}
+.start-button{width:100%;margin-top:13px;padding:12px}
+.notice{font-size:9px;line-height:1.55;color:#8f9b90;margin:12px 0 0}
+.session-row{padding:9px 0;border-bottom:1px solid #2d362e;font-size:10px}
+.session-row:last-child{border:0}
+.session-row strong{color:#dce5da;font-weight:700}
+.postgame-panel,.import-hub,.import-review,.live-workspace{width:min(1380px,calc(100% - 48px));margin:24px auto;padding:22px}
+.postgame-head,.review-top{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.postgame-stats,.review-stat-grid{gap:9px}
+.postgame-stats>div,.review-stat-grid>div{background:#202820;border:1px solid #344035;border-radius:10px;padding:13px}
+.postgame-stats span,.review-stat-grid span{font-size:9px;color:#9eaa9e}
+.postgame-stats strong,.review-stat-grid strong{font-size:17px}
+.import-hub{display:grid;grid-template-columns:minmax(220px,.8fr) minmax(0,1.2fr);gap:14px 22px;align-items:center}
+.import-copy h2,.section-heading h2{font-size:25px;letter-spacing:-.05em}
+.import-copy>p:last-child,.section-subtitle{font-size:11px;color:#9eaa9e}
+.import-controls{gap:8px}
+.import-controls input,.import-controls select,.import-controls textarea,.live-lookup input{min-height:42px;background:#111712;border:1px solid #39453b;border-radius:9px;color:#edf1eb;padding:10px 12px;font:inherit;font-size:11px}
+.import-controls input:focus,.import-controls select:focus,.import-controls textarea:focus,.live-lookup input:focus{outline:2px solid rgba(182,213,167,.38);border-color:#829d7c}
+.import-pgn-controls{grid-column:2}
+.import-status,.live-status{font-size:10px;color:#a4b0a4}
+.import-review{padding:20px}
+.review-top{margin-bottom:15px}
+.review-layout{grid-template-columns:minmax(0,1.15fr) minmax(320px,.85fr);gap:17px}
+.review-board-column{min-width:0}
+.review-board-shell{border-radius:11px}
+.review-details{background:#171e19;border:1px solid #303a32;border-radius:12px;padding:13px;min-width:0}
+.review-tabs{gap:4px;border-bottom:1px solid #303a32;padding-bottom:9px}
+.review-tab{border:1px solid transparent;border-radius:8px;background:transparent;color:#9eaa9e;padding:8px 10px;font-size:10px;font-weight:700}
+.review-tab.active{background:#2b3b2d;border-color:#435b45;color:#dff0d8}
+.review-tab-panel{padding:13px 2px 3px}
+.tab-hint{font-size:10px;line-height:1.6;color:#a0aca0}
+.review-eval{font-size:26px;color:var(--accent-strong)}
+.import-review-moves{gap:5px}
+.review-move-cell{background:#202820;border-radius:6px;color:#e4ebe2;padding:7px 9px;font-size:10px}
+.review-move-cell.current{background:#344a36;border-color:#8ca985}
+.review-nav{margin-top:10px;gap:8px}
+.review-nav .button{flex:1}
+.live-workspace{padding:22px}
+.section-heading{align-items:center;margin-bottom:17px}
+.section-heading h2{margin-bottom:6px}
+.live-pill{border:1px solid #465a47;background:#243326;color:#c7e3bb;border-radius:999px;padding:7px 11px;font-size:9px;letter-spacing:.09em;font-weight:800}
+.live-lookup{background:#1c241e;border:1px solid #303d32;border-radius:11px;padding:14px;margin-bottom:16px}
+.live-lookup label{display:block;font-size:10px;color:#c3cec2;font-weight:700;margin-bottom:8px}
+.live-lookup-row{gap:8px}
+.live-lookup input{flex:1}
+.live-layout{grid-template-columns:minmax(0,1.1fr) minmax(300px,.75fr);gap:16px}
+.live-board-shell{border:1px solid #3b463d;border-radius:11px;overflow:hidden;box-shadow:var(--shadow)}
+.live-player-row{padding:8px 11px;background:#202820;border:1px solid #303a32;border-radius:8px;font-size:10px;color:#dce5da}
+.live-analysis-panel{background:#171e19;border:1px solid #303a32;border-radius:12px;padding:16px}
+.live-best-card{background:#243326;border-color:#3c5540;border-radius:10px;padding:14px}
+.live-best-card strong{font-size:27px}
+.live-move{background:#202820;border-radius:7px}
+.live-move:hover,.live-move.active{background:#304332;border-color:#617a5d}
+footer{padding:22px 15px;border-top:1px solid #29332b;color:#7f8c80;font-size:9px;letter-spacing:.16em}
+@media(max-width:1050px){
+ .layout{grid-template-columns:minmax(0,1fr) 290px;gap:15px}
+ .side-panel{top:82px}
+ .review-layout,.live-layout{grid-template-columns:minmax(0,1fr) minmax(280px,.8fr)}
+}
+@media(max-width:800px){
+ .topbar{position:relative;min-height:62px;padding:9px 13px}
+ .layout{grid-template-columns:minmax(0,1fr);margin:15px auto 28px;padding:0 13px;gap:13px}
+ .play-area{gap:10px}
+ .side-panel{position:static;display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);align-items:start}
+ .engine-card{grid-row:auto}
+ .board-shell{width:min(100%,min(690px,calc(100vw - 26px)))}
+ .board-footer{width:min(100%,min(690px,calc(100vw - 26px)))}
+ .postgame-panel,.import-hub,.import-review,.live-workspace{width:calc(100% - 26px);margin:14px auto;padding:15px}
+ .review-layout,.live-layout{grid-template-columns:minmax(0,1fr)}
+ .review-board-column,.live-board-column{width:min(100%,680px);margin:0 auto}
+ .review-details,.live-analysis-panel{width:100%}
+ .import-hub{grid-template-columns:1fr}
+ .import-pgn-controls{grid-column:1}
+ .side-panel .info-card{align-self:stretch}
+}
+@media(max-width:560px){
+ .topbar{gap:7px}
+ .brand{font-size:10px}
+ .main-nav{order:3;width:100%;display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
+ .nav-link{padding:8px 5px;font-size:10px}
+ .status{font-size:9px}
+ .board-heading{align-items:flex-start;flex-direction:column;gap:9px}
+ .board-heading h1{font-size:22px}
+ .board-actions{width:100%;justify-content:flex-start}
+ .board-actions .button{flex:1;padding:8px 7px;font-size:9px}
+ .play-area{grid-template-columns:1fr}
+ .play-area>.review-card,.play-area>.accuracy-card{grid-column:1}
+ .play-area>.review-card{grid-row:auto}
+ .board-shell{width:100%;border-radius:8px}
+ .board-footer{width:100%}
+ .side-panel{grid-template-columns:1fr}
+ .engine-card{padding:16px}
+ .move-tools{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+ .move-tools .button{padding:10px 7px}
+ .info-card{padding:13px}
+ .import-controls{display:grid;grid-template-columns:1fr}
+ .import-controls .button,.file-label{width:100%;justify-content:center}
+ .import-pgn-controls textarea{min-height:76px}
+ .section-heading{align-items:flex-start;flex-direction:column}
+ .section-heading h2{font-size:22px}
+ .live-lookup-row{display:grid;grid-template-columns:1fr 1fr}
+ .live-lookup input{grid-column:1/-1;width:100%}
+ .live-lookup-row .button{width:100%;padding:10px 7px}
+ .live-board-controls .button{flex:1}
+ .review-tabs{overflow-x:auto;flex-wrap:nowrap}
+ .review-tab{white-space:nowrap;flex:none}
+ .review-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .postgame-head,.review-top{align-items:flex-start}
+ .postgame-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:370px){
+ .board-actions{display:grid;grid-template-columns:1fr 1fr}
+ .board-actions .button:first-child{grid-column:1/-1}
+ .status{width:100%;margin:0}
+ .live-lookup-row{grid-template-columns:1fr}
+ .live-lookup input{grid-column:1}
+}
