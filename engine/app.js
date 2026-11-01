@@ -10,6 +10,13 @@
   var engineReady = false;
   var engineBusy = false;
   var turnToken = 0;
+  var analysisBaseline = null;
+  var analysisBaselineFen = null;
+  var baselinePromise = null;
+  var lastHumanMove = null;
+  var pendingPremove = null;
+  var arrows = [];
+  var arrowStart = null;
 
   var engineStatus = $("engine-status");
   var statusDot = $("status-dot");
@@ -19,6 +26,10 @@
   var moveCount = $("move-count");
   var movesElement = $("moves");
   var startButton = $("start-btn");
+  var qualityLabel = $("quality-label");
+  var qualityMove = $("quality-move");
+  var qualityDetail = $("quality-detail");
+  var premoveStatus = $("premove-status");
 
   function setEngineStatus(message, state) {
     engineStatus.textContent = message;
@@ -28,6 +39,132 @@
   function selectedElo() { return Number($("elo").value); }
   function selectedAttack() { return Number($("attack").value); }
   function selectedThinkMs() { return Math.round(Number($("think").value) * 1000); }
+
+  function scoreFromResult(result) {
+    if (result && Number.isFinite(Number(result.scoreCp))) return Number(result.scoreCp);
+    if (result && result.candidates && result.candidates.length &&
+        Number.isFinite(Number(result.candidates[0].scoreCp))) {
+      return Number(result.candidates[0].scoreCp);
+    }
+    return null;
+  }
+
+  function formatEval(cp) {
+    if (cp === null || !Number.isFinite(cp)) return "—";
+    var value = cp / 100;
+    return (value > 0 ? "+" : "") + value.toFixed(2);
+  }
+
+  function prepareHumanBaseline() {
+    if (!engineReady || !gameStarted || game.game_over() || game.turn() !== humanSide) return Promise.resolve(null);
+    var fen = game.fen();
+    if (analysisBaselineFen === fen && analysisBaseline !== null) return Promise.resolve(analysisBaseline);
+    if (baselinePromise && analysisBaselineFen === fen) return baselinePromise;
+    analysisBaseline = null;
+    analysisBaselineFen = fen;
+    var token = turnToken;
+    baselinePromise = engine.search(fen, 350, 1, token).then(function (result) {
+      if (token !== turnToken || game.fen() !== fen) return null;
+      analysisBaseline = scoreFromResult(result);
+      return analysisBaseline;
+    }).catch(function () {
+      if (analysisBaselineFen === fen) analysisBaseline = null;
+      return null;
+    });
+    return baselinePromise;
+  }
+
+  function showMoveReview(move, before, after) {
+    qualityMove.textContent = move || "Last move";
+    if (before === null || after === null) {
+      qualityLabel.textContent = "Not rated";
+      qualityDetail.textContent = "Berserk could not compare both positions.";
+      return;
+    }
+    var loss = Math.max(0, before - after);
+    var label;
+    if (loss <= 10) label = "Best";
+    else if (loss <= 25) label = "Excellent";
+    else if (loss <= 50) label = "Good";
+    else if (loss <= 100) label = "Inaccuracy";
+    else if (loss <= 200) label = "Mistake";
+    else label = "Blunder";
+    qualityLabel.textContent = label;
+    qualityDetail.textContent = "Eval: " + formatEval(before) + " → " + formatEval(after) +
+      " · loss " + Math.round(loss) + " cp";
+  }
+
+  function applyPremove() {
+    if (!pendingPremove || !gameStarted || engineBusy || game.turn() !== humanSide || game.game_over()) return false;
+    var queued = pendingPremove;
+    pendingPremove = null;
+    premoveStatus.textContent = "";
+    var move = game.move({ from: queued.from, to: queued.to, promotion: queued.promotion || "q" });
+    if (!move) {
+      premoveStatus.textContent = "Premove unavailable — the move is no longer legal.";
+      renderGame();
+      return false;
+    }
+    lastHumanMove = move.san;
+    analysisBaseline = null;
+    analysisBaselineFen = null;
+    baselinePromise = null;
+    renderGame();
+    makeEngineMove();
+    return true;
+  }
+
+  function squareAtPointer(event) {
+    var rect = $("board").getBoundingClientRect();
+    if (!rect.width || !rect.height) return null;
+    var x = Math.floor((event.clientX - rect.left) / rect.width * 8);
+    var y = Math.floor((event.clientY - rect.top) / rect.height * 8);
+    if (x < 0 || x > 7 || y < 0 || y > 7) return null;
+    var file = board.orientation() === "black" ? 7 - x : x;
+    var rank = board.orientation() === "black" ? y + 1 : 8 - y;
+    return "abcdefgh".charAt(file) + rank;
+  }
+
+  function renderArrows() {
+    var svg = $("arrow-layer");
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    var ns = "http://www.w3.org/2000/svg";
+    var defs = document.createElementNS(ns, "defs");
+    var marker = document.createElementNS(ns, "marker");
+    marker.setAttribute("id", "arrow-head");
+    marker.setAttribute("markerWidth", "5");
+    marker.setAttribute("markerHeight", "5");
+    marker.setAttribute("refX", "4");
+    marker.setAttribute("refY", "2.5");
+    marker.setAttribute("orient", "auto");
+    var head = document.createElementNS(ns, "path");
+    head.setAttribute("d", "M0,0 L5,2.5 L0,5 Z");
+    head.setAttribute("fill", "#e6c45b");
+    marker.appendChild(head);
+    defs.appendChild(marker);
+    svg.appendChild(defs);
+    arrows.forEach(function (arrow) {
+      function point(square) {
+        var file = square.charCodeAt(0) - 97;
+        var rank = Number(square.charAt(1));
+        return board.orientation() === "black"
+          ? { x: 7 - file + 0.5, y: rank - 1 + 0.5 }
+          : { x: file + 0.5, y: 8 - rank + 0.5 };
+      }
+      var from = point(arrow.from);
+      var to = point(arrow.to);
+      var line = document.createElementNS(ns, "line");
+      line.setAttribute("x1", from.x);
+      line.setAttribute("y1", from.y);
+      line.setAttribute("x2", to.x);
+      line.setAttribute("y2", to.y);
+      line.setAttribute("stroke", "#e6c45b");
+      line.setAttribute("stroke-width", "0.13");
+      line.setAttribute("stroke-linecap", "round");
+      line.setAttribute("marker-end", "url(#arrow-head)");
+      svg.appendChild(line);
+    });
+  }
 
   function updateControls() {
     var elo = selectedElo();
@@ -68,6 +205,9 @@
     turnLabel.textContent = outcome ? outcome : (engineBusy ? "Berserk is thinking" : (game.turn() === "w" ? "White to move" : "Black to move"));
     moveCount.textContent = "Move " + (Math.floor(game.history().length / 2) + 1);
     movesElement.textContent = formatHistory();
+    premoveStatus.textContent = pendingPremove
+      ? "Premove queued: " + pendingPremove.from + " → " + pendingPremove.to
+      : premoveStatus.textContent;
     if (outcome) {
       gameStatus.textContent = outcome;
     } else if (!gameStarted) {
@@ -153,10 +293,17 @@
     engineBusy = true;
     renderGame();
     try {
+      if (baselinePromise) await baselinePromise;
+      var beforeScore = analysisBaseline;
       var requestedMultiPV = Math.max(1, Math.min(8, Math.ceil((3000 - selectedElo()) / 400) + 1));
       var result = await engine.search(game.fen(), selectedThinkMs(), requestedMultiPV, requestToken);
       if (requestToken !== turnToken) return;
       engineBusy = false;
+      if (lastHumanMove) {
+        var enginePerspective = scoreFromResult(result);
+        showMoveReview(lastHumanMove, beforeScore, enginePerspective === null ? null : -enginePerspective);
+        lastHumanMove = null;
+      }
 
       var chosenMove = chooseEngineMove(result);
       var played = playUciMove(chosenMove);
@@ -168,8 +315,11 @@
         return;
       }
       renderGame();
-      if (game.game_over()) {
-        renderGame();
+      analysisBaseline = null;
+      analysisBaselineFen = null;
+      baselinePromise = null;
+      if (!game.game_over()) {
+        if (!applyPremove()) prepareHumanBaseline();
       }
     } catch (error) {
       if (requestToken !== turnToken) return;
@@ -192,6 +342,12 @@
     engineBusy = false;
     gameStarted = true;
     humanSide = chosenSide;
+    pendingPremove = null;
+    premoveStatus.textContent = "";
+    analysisBaseline = null;
+    analysisBaselineFen = null;
+    baselinePromise = null;
+    lastHumanMove = null;
     game.reset();
     board.orientation(humanSide === "w" ? "white" : "black");
     board.start();
@@ -199,12 +355,19 @@
     startButton.textContent = "Restart game";
     renderGame();
     if (humanSide === "b") makeEngineMove();
+    else prepareHumanBaseline();
   }
 
   function undoTurn() {
     if (!game.history().length) return;
     turnToken++;
     engineBusy = false;
+    pendingPremove = null;
+    premoveStatus.textContent = "";
+    analysisBaseline = null;
+    analysisBaselineFen = null;
+    baselinePromise = null;
+    lastHumanMove = null;
     var undone = false;
     for (var i = 0; i < 2; i++) {
       if (game.undo()) undone = true;
@@ -212,6 +375,7 @@
     if (!undone) return;
     renderGame();
     if (gameStarted && game.turn() !== humanSide && !game.game_over()) makeEngineMove();
+    else if (gameStarted && !game.game_over()) prepareHumanBaseline();
   }
 
   var engine = new BerserkEngine({
@@ -259,22 +423,56 @@
     draggable: true,
     pieceTheme: "https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png",
     onDragStart: function (source, piece) {
-      if (!gameStarted || engineBusy || game.game_over()) return false;
-      if (game.turn() !== humanSide) return false;
-      if ((game.turn() === "w" && piece.charAt(0) !== "w") ||
-          (game.turn() === "b" && piece.charAt(0) !== "b")) return false;
+      if (!gameStarted || game.game_over()) return false;
+      if (piece.charAt(0) !== humanSide) return false;
+      if (!engineBusy && game.turn() !== humanSide) return false;
       return true;
     },
     onDrop: function (source, target) {
-      if (!gameStarted || engineBusy || game.game_over()) return "snapback";
+      if (!gameStarted || game.game_over()) return "snapback";
+      if (engineBusy) {
+        pendingPremove = { from: source, to: target, promotion: "q" };
+        premoveStatus.textContent = "Premove queued: " + source + " → " + target;
+        return "snapback";
+      }
+      if (game.turn() !== humanSide) return "snapback";
       var move = game.move({ from: source, to: target, promotion: "q" });
       if (move === null) return "snapback";
+      lastHumanMove = move.san;
+      analysisBaseline = null;
+      analysisBaselineFen = null;
       renderGame();
       if (game.game_over()) return;
       makeEngineMove();
     },
     onSnapEnd: function () {
       board.position(game.fen(), false);
+    }
+  });
+
+  $("board").addEventListener("contextmenu", function (event) { event.preventDefault(); });
+  $("board").addEventListener("pointerdown", function (event) {
+    if (event.button !== 2) return;
+    event.preventDefault();
+    arrowStart = squareAtPointer(event);
+  });
+  window.addEventListener("pointerup", function (event) {
+    if (event.button !== 2 || !arrowStart) return;
+    var target = squareAtPointer(event);
+    if (target && target !== arrowStart) {
+      arrows.push({ from: arrowStart, to: target });
+      renderArrows();
+    }
+    arrowStart = null;
+  });
+  $("clear-arrows-btn").addEventListener("click", function () {
+    arrows = [];
+    renderArrows();
+  });
+  window.addEventListener("keydown", function (event) {
+    if (event.key === "Escape") {
+      arrows = [];
+      renderArrows();
     }
   });
 
@@ -293,7 +491,7 @@
     });
   });
 
-  $("flip-btn").addEventListener("click", function () { board.flip(); });
+  $("flip-btn").addEventListener("click", function () { board.flip(); renderArrows(); });
   $("start-btn").addEventListener("click", startGame);
   $("new-btn").addEventListener("click", startGame);
   $("undo-btn").addEventListener("click", undoTurn);
@@ -304,4 +502,5 @@
 
   updateControls();
   renderGame();
+  renderArrows();
 })();
