@@ -59,6 +59,20 @@ For arrow display, the host extension must read each `info ... multipv N ... pv 
 
 The WASM search currently runs synchronously inside its worker and completes according to the requested time/depth limit; `stop` cannot interrupt a search already in progress. Keep requested search limits bounded.
 
+## Board tools and move review
+
+- Right-click and drag on the board to draw an arrow; press Escape or use Clear arrows to remove annotations.
+- While Berserk is thinking, drag one of your pieces to queue a premove. The premove is played automatically if it is still legal after the engine move.
+- The Move quality panel grades both sides' moves using Berserk's evaluations before and after each move. It shows the evaluation change and approximate centipawn loss; short analysis times can make the grade fluctuate.
+
+## Cloudflare website endpoint
+
+The `berserk-web` Cloudflare Worker proxies the GitHub Pages website (it does not run the engine server). Open:
+
+`https://berserk-web.akatsuki-x-pain12.workers.dev/`
+
+The engine still runs locally in the browser through WebAssembly, so the site does not need a Cloudflare Container for chess play. The separate container-backed native API remains unavailable on the account's current Workers plan.
+
 ## Build and deployment
 
 GitHub Actions checks out Git LFS, validates the WASM magic header and binary size, syntax-checks both browser workers, then publishes the complete `engine/` directory to GitHub Pages.
