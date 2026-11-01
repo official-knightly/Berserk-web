@@ -220,6 +220,12 @@
       if (state === "ready") setEngineStatus("Berserk engine ready", "ready");
       if (state === "error") setEngineStatus("Engine failed to load", "error");
     },
+    onProgress: function (loaded, total) {
+      var mb = function (n) { return (n / 1048576).toFixed(1); };
+      setEngineStatus(total
+        ? "Loading Berserk WASM… " + Math.min(100, Math.round(loaded / total * 100)) + "%"
+        : "Loading Berserk WASM… " + mb(loaded) + " MB", "loading");
+    },
     onInfo: function (message) {
       if (message.context !== turnToken || !engineBusy) return;
       var depthMatch = String(message.line).match(/\bdepth\s+(\d+)/);
