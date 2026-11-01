@@ -42,3 +42,53 @@
 .classification-icon[hidden]{display:none}
 .quality-heading #quality-label{font-size:17px}
 .accuracy-card .analysis-metrics{margin-top:2px}
+
+/* Game review additions */
+.hint-button{white-space:nowrap}
+.hint-status{max-width:680px;margin:10px auto 0;padding:10px 12px;border:1px solid #354238;border-radius:7px;background:#1b241d;color:#c9dfc4;font-size:11px;line-height:1.5}
+.player-accuracy{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:0 0 14px}
+.player-accuracy>div{display:flex;align-items:center;gap:8px;min-width:0;padding:9px 10px;border:1px solid var(--line);border-radius:6px;background:#202421;font-size:11px;color:var(--muted)}
+.player-accuracy strong{margin-left:auto;color:var(--text);font-size:15px;font-variant-numeric:tabular-nums}
+.accuracy-dot{width:9px;height:9px;border-radius:50%;flex:0 0 9px}
+.white-dot{background:#eeeae0;border:1px solid #a9afa7}
+.black-dot{background:#202421;border:1px solid #858e86}
+.moves-panel-heading{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.moves-panel-heading .panel-title{margin-bottom:10px}
+.review-count{font-size:10px;color:var(--muted)}
+.moves-list{display:flex;flex-direction:column;gap:5px}
+.review-move-row{display:grid;grid-template-columns:30px minmax(0,1fr) minmax(0,1fr);align-items:center;gap:6px}
+.review-move-number{color:var(--muted);font-size:10px;font-variant-numeric:tabular-nums}
+.review-move-cell{display:flex;align-items:center;gap:6px;min-width:0;padding:6px 8px;border-radius:5px;background:#202421;color:var(--text);font-size:11px;font-variant-numeric:tabular-nums}
+.review-move-cell.reviewed{border:1px solid #354238}
+.move-quality-icon{width:16px;height:16px;object-fit:contain;flex:0 0 16px}
+@media(min-width:851px){
+  .play-area{min-width:0}
+  .side-panel{position:sticky;top:18px}
+}
+@media(max-width:850px){
+  .layout{max-width:720px}
+  .play-area,.side-panel{min-width:0}
+  .board-shell{max-width:min(100%,680px)}
+  .play-area>.review-card,.play-area>.accuracy-card,.moves-panel,.move-tools,.board-footer,.board-hint,.premove-status,.hint-status{max-width:100%}
+}
+@media(max-width:520px){
+  .topbar{height:58px}
+  .layout{padding:0 10px;margin:15px auto 28px;gap:16px}
+  .board-heading{align-items:flex-start;flex-direction:column}
+  .board-actions{width:100%}
+  .board-actions .button{flex:1;padding:9px 7px;font-size:10px}
+  .board-shell{border-radius:3px}
+  .info-card{padding:13px}
+  .quality-heading #quality-label{font-size:14px}
+  .quality-detail{font-size:11px}
+  .analysis-metric{padding:9px}
+  .analysis-metric strong{font-size:18px}
+  .player-accuracy{gap:6px}
+  .player-accuracy>div{padding:8px 7px;gap:6px;font-size:10px}
+  .player-accuracy strong{font-size:13px}
+  .moves-panel{padding:12px}
+  .review-move-cell{padding:6px 5px;font-size:10px;gap:4px}
+  .move-quality-icon{width:14px;height:14px;flex-basis:14px}
+  .move-tools{display:grid;grid-template-columns:1fr 1fr}
+  .engine-card{padding:14px}
+}
