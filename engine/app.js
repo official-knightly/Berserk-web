@@ -583,6 +583,10 @@
     turnToken++;
     engineBusy = false;
     pendingPremove = null;
+    lastPremoveHighlight = null;
+    premoveHistory = [];
+    if (manualResult) { manualResult = null; gameStarted = true; }
+    renderPremoveHighlight();
     premoveStatus.textContent = "";
     analysisBaseline = null;
     analysisBaselineFen = null;
