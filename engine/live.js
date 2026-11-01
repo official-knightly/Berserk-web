@@ -184,6 +184,7 @@
     finally{if(token===watchToken)$("live-find").disabled=false;}
   });
   $("live-stop").addEventListener("click",stop);
+  window.addEventListener("berserk:live-hidden",stop);
   $("live-flip").addEventListener("click",function(){liveBoard.flip();if(currentGame)liveBoard.position(replayAt(selectedPly).fen(),false);});
   $("live-review").addEventListener("click",function(){
     if(currentPgn)window.dispatchEvent(new CustomEvent("berserk:open-review",{detail:{pgn:currentPgn,title:"Lichess · "+$("live-username").value.trim()}}));
