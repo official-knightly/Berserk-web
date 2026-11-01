@@ -217,7 +217,8 @@
         number.textContent = (Math.floor(i / 2) + 1) + ".";
         row.appendChild(number);
         [verbose[i], verbose[i + 1]].forEach(function (move) {
-          var cell = document.createElement("span");
+          var cell = document.createElement("button");
+          cell.type = "button";
           cell.className = "review-move-cell";
           if (!move) { row.appendChild(cell); return; }
           var record = reviewed[i + (move.color === "b" ? 1 : 0)];
@@ -235,6 +236,20 @@
           var notation = document.createElement("span");
           notation.textContent = move.san;
           cell.appendChild(notation);
+          var targetPly = i + (move.color === "b" ? 1 : 0) + 1;
+          cell.setAttribute("aria-label", "Go to move " + targetPly + ": " + move.san);
+          cell.addEventListener("click", function () {
+            if (engineBusy) return;
+            var replay = new Chess();
+            var history = game.history({ verbose: true });
+            for (var p = 0; p < targetPly && p < history.length; p++) {
+              replay.move({ from: history[p].from, to: history[p].to, promotion: history[p].promotion || "q" });
+            }
+            if (board) board.position(replay.fen(), false);
+            turnLabel.textContent = "Reviewing move " + targetPly + " · " + move.san;
+            movesElement.querySelectorAll(".review-move-cell").forEach(function (node) { node.classList.remove("current"); });
+            cell.classList.add("current");
+          });
           row.appendChild(cell);
         });
         movesElement.appendChild(row);
@@ -287,7 +302,7 @@
     lastHumanBeforeFen = beforeFen;
     lastHumanWasPremove = true;
     premoveHistory.push({from:queued.from,to:queued.to,ply:game.history().length-1});
-    lastPremoveHighlight = {from:queued.from,to:queued.to};
+    lastPremoveHighlight = null;
     renderGame();
     makeEngineMove();
     return true;
@@ -401,6 +416,7 @@
       gameStatus.textContent = "Playing";
     }
     $("undo-btn").disabled = !game.history().length;
+    if ($("cancel-premove-btn")) $("cancel-premove-btn").disabled = !pendingPremove;
     $("new-btn").disabled = !engineReady;
     startButton.disabled = !engineReady;
   }
@@ -901,6 +917,13 @@
   });
   window.addEventListener("keydown", function (event) {
     if (event.key === "Escape") {
+      if (pendingPremove) {
+        pendingPremove = null;
+        lastPremoveHighlight = null;
+        premoveStatus.textContent = "Premove cancelled.";
+        renderPremoveHighlight();
+        renderGame();
+      }
       arrows = [];
       arrowStart = null;
       arrowPendingStart = null;
@@ -927,6 +950,14 @@
   $("start-btn").addEventListener("click", startGame);
   $("new-btn").addEventListener("click", startGame);
   $("undo-btn").addEventListener("click", undoTurn);
+  if ($("cancel-premove-btn")) $("cancel-premove-btn").addEventListener("click", function () {
+    if (!pendingPremove) return;
+    pendingPremove = null;
+    lastPremoveHighlight = null;
+    premoveStatus.textContent = "Premove cancelled.";
+    renderPremoveHighlight();
+    renderGame();
+  });
   if ($("fetch-chesscom")) bindImportButton("fetch-chesscom",fetchChessCom,"chesscom-username");
   if ($("fetch-lichess")) bindImportButton("fetch-lichess",fetchLichess,"lichess-username");
   if ($("fetch-worldchess")) $("fetch-worldchess").addEventListener("click",function(){importWorldChess($("worldchess-pgn-url").value.trim()).catch(function(e){$("import-status").textContent=e.message;});});
