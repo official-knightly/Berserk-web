@@ -353,6 +353,8 @@
     baselinePromise = null;
     lastHumanMove = null;
     game.reset();
+    arrows = [];
+    renderArrows();
     board.orientation(humanSide === "w" ? "white" : "black");
     board.start();
     updateControls();
