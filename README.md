@@ -1,7 +1,7 @@
 # Berserk Web — Engine Lab
 
 A chessboard.js website for playing against the Berserk chess engine in the browser. The engine runs locally in a Web Worker through WebAssembly; no remote engine API or API key is required.
-to integrate the engine you can go to my https://https://github.com/official-knightly/berserk-sigma      and copy the ts and engine worker 
+to integrate the engine you can go to my https://github.com/official-knightly/berserk-sigma      and copy the ts and engine worker 
 ## Run locally
 
 The website requires HTTP or HTTPS because browsers restrict Web Workers and WebAssembly when opening an HTML file directly.
